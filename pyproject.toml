@@ -1,0 +1,36 @@
+# Working environment for the PHUSE EU Connect 2026 paper.
+# This is deliberately NOT an installable package: no [build-system], no
+# [project.scripts]. Everything runs through `uv run`:
+#   uv run python tools/build_paper.py      build the PDF
+#   uv run python tools/build_slides.py     build the talk's PowerPoint deck
+#   uv run python tools/check_sources.py    check the sources paper and slides rely on
+[project]
+name = "phuse-2026-paper"
+version = "0.1.0"
+description = "How to control the Machine Spirit — PHUSE EU Connect 2026 paper"
+requires-python = ">=3.11"
+# `typst` ships the Rust compiler as an arm64 wheel; it is the paper's only
+# native dependency. pandoc is intentionally absent: pypandoc-binary 1.17
+# bundles an x86_64-only pandoc that will not run natively on Apple Silicon.
+# We render Markdown with the vendored `cmarker` Typst package instead (see
+# tools/vendor/cmarker/). The slides add python-pptx, which brings lxml and
+# Pillow (both with arm64 wheels), and segno for the QR codes (pure Python).
+dependencies = [
+    "typst>=0.15.0",
+    "pyyaml>=6",
+    "python-pptx>=1.0.2",
+    "segno>=1.6",
+]
+
+# The narrated deck (`build_slides.py --narrated`) cuts its clips with ffmpeg. imageio-ffmpeg
+# ships an ffmpeg binary as a wheel for Linux, macOS (arm64 and x86_64) and Windows, so nothing
+# is installed by hand; only that build needs it:
+#   uv run --group narration python tools/build_slides.py --narrated
+[dependency-groups]
+narration = [
+    "imageio-ffmpeg>=0.5",
+]
+
+[tool.uv]
+# Nothing to build; keep uv from trying to package this project.
+package = false

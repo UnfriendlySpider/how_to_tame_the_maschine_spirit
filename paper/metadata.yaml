@@ -1,0 +1,37 @@
+# Front-matter for the paper. Read by tools/build_paper.py and injected into
+# the title block and the PDF document properties. Prose belongs in paper.md,
+# not here.
+title: "How to Control the Machine Spirit"
+subtitle: "Without Just Praying for Success"
+author: "Josua Böser"
+affiliation: "Evidenze"
+# PHUSE shows "Author, Company, City, Country" under the title.
+city: "Essen"
+country: "Germany"
+conference: "PHUSE EU Connect 2026, Glasgow"
+date: "November 2026"
+# Assigned by PHUSE with the acceptance. It goes above the title, into the
+# PDF subject, and the build names the output after it (out/PAP_ML19.pdf).
+paper_number: "ML19"
+subject: "ML19 – PHUSE EU 2026"
+keywords:
+  - Claude Code
+  - AI coding assistants
+  - CLAUDE.md
+  - skills
+  - hooks
+  - permissions
+  - subagents
+  - context window
+  - memory
+  - isolation
+  - virtual machine
+  - container
+  - cloud session
+  - prompt injection
+  - supply-chain attacks
+  - data protection
+# The repository, public before the talk under the MIT License; file cards
+# would link to files there, but the paper has carried none since 2026-10-08.
+repository: "https://github.com/UnfriendlySpider/how_to_tame_the_maschine_spirit"
+branch: "main"

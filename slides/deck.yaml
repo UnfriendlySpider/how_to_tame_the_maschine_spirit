@@ -1,0 +1,880 @@
+# The talk deck: how each slide of slides/storyline.md is laid out.
+#
+#   uv run python tools/build_slides.py           build out/PRE_ML19.pptx; missing images become placeholders
+#   uv run python tools/build_slides.py --list    which images are in slides/beats/ and which are missing
+#   uv run python tools/build_slides.py --final   the same build, but it fails while anything is a placeholder
+#
+# Four sources, one job each:
+#   storyline.md  the script: slide ids and titles, the image of each slide, the
+#                 scene (printed on its placeholder) and the notes in bullets,
+#                 the intention and the points of each slide (the speaker notes)
+#   deck.yaml     this file: the layout of each slide and what its blocks show
+#   beats/        the images: save one under its storyline name and rebuild
+#   brand/        the logos
+# Title, author line and paper number come from paper/metadata.yaml.
+#
+# Every slide id of the storyline has exactly one entry under `slides`, in the
+# same order; the build stops on a slide that is missing or extra. Quote the
+# ids, or YAML reads 1.1 as a number.
+#
+# The deck has two parts. The story is told in pictures: every story slide is
+# a `picture`, the image edge to edge and nothing else on it. After the cast's
+# goodbye and the closing slide, which stays up for the questions, come the
+# beats that answer a question (beat 10) and the reference part, to read after
+# the talk: one `reference` slide per mechanism, the paper's own sentences
+# beside the files and commands the story is about.
+#
+# Layouts (every slide but the title and the pictures carries its title in the
+# top left corner, and every slide but the title and the pictures a leaf with the
+# slide number in the bottom left corner, as in ML04; the pictures keep their
+# black and white: the number stands bottom right in black, without a leaf, and
+# every generated image carries the AI label in its top right corner)
+#   title      paper number, title, place and conference, name and e-mail, and the line
+#              that explains the AI label; the logo top right, the earth bottom right
+#              (no drawing since 2026-10-28: the house opens the story on 0.2)
+#   picture    the whole slide is the image; its title sits just above the slide,
+#              for the outline and screen readers, where the show never draws it
+#   close      questions and contact on the left, the QR codes on the right
+#   reference  `explain` blocks on the left without a card, `panel` blocks in a card
+#              on the right; either alone takes the whole width
+#   panel      the image as a 4:3 crop on the left, the panel on the right (not used now)
+#   full       the whole 16:9 image below the title, an optional inset card (not used now)
+#
+# Slide options
+#   split      reference: the left column's share of the width (default 0.45); panel: the
+#              image's share (default 0.55). Lower it to widen the right-hand card
+#   mechanism  reference: which of the seven leaves in the top right corner to light (1-7)
+#   focus      [x, y]: the point of the image the crop centres on, from 0 to 1 (default [0.5, 0.5])
+#   zoom       crop closer than the frame-filling crop (default 1)
+#   inset      full: a card in a corner of the image, {corner, width, blocks}
+#   rings      highlight rings drawn on the slide over the picture, [x, y, w, h] from 0 to 1;
+#              as {at: [x, y, w, h], click: true} a ring waits for a click, and the rings that
+#              wait pop up together on one click, after the labels that wait (not used now: 8.1
+#              had them for a day, 2026-10-22, and the author points instead)
+#   names      picture: the names that float above the cast, as in a game. Each entry has
+#              `who` (an id under `cast`), `at` [x, y], the top of the head as shares of the
+#              picture, and an optional `bar`, a share from 0 to 1 shown as a bar under the
+#              name (beat 6: the context window); `burst: true` with `bar: 1` sends short lines
+#              flying from the bar's end, and `text: false` keeps the bar alone. Not on a
+#              zoomed slide
+#   labels     picture: an object's Claude Code name in a thin box, `text` and `at` [x, y], the
+#              middle of the label's lower edge; a "\n" in the text breaks it into lines. With
+#              `click: true` it waits for a click and pops up, so it appears when the speaker
+#              names it; several pop up in their order, and the notes name the clicks
+#              (since 2026-10-20). Not on a slide with a build-up; `motion: false` shows them all
+#   card       picture: the id of a robot under `cast` that joins the team on this slide, or of
+#              the threat that comes in (its card carries its own `tag`). The next slide
+#              repeats the picture under a white veil and sets the card on it, as a game shows
+#              a new team member. Each joins once; the card fades in
+#   beside     picture, with `card`: a robot already on the team whose card stands on the left of
+#              the new one, the rows lined up, so the room compares the two
+#   transition picture: `fade`, the slide fades in from the one before; for a fix that shares its
+#              pain's camera, so the dissolve shows what the mechanism changes
+#   build_up   picture: `stages`, earlier stages of the same picture, each on a slide of its own
+#              before the slide itself; each stage is an `image` and the `bars` it shows by cast
+#              id. Each waits for the click (since 2026-10-27; they moved on by themselves before)
+#              and carries the slide's notes and a number; the later ones fade in from the one
+#              before, and they stay without motion
+#   steps      picture: the states a fix passes through, each on a slide of its own before the
+#              slide itself, which shows the last (since 2026-10-22); each step is an `image`,
+#              the `bars` it shows by cast id and its own `labels`, which stand from the start,
+#              since the step is its own click. They carry the slide's notes and a number; the
+#              first fades in with the slide's `transition`, and they stay without motion. A
+#              state that changes a picture or a bar gets a step, not a click: one slide whose
+#              clicks changed both did not play in PowerPoint as built
+#   advance    picture: `after_gif` moves on to the next slide by itself, half a second after
+#              the slide's GIF reaches its last frame; a click still moves on too. For a GIF
+#              that plays once and ends on the next slide's picture, where a click would show
+#              nothing (since 2026-10-29: 0.3 into 1.1, which took two clicks)
+#   alt        picture: the alternative text a screen reader speaks, describing the picture as it
+#              was finally drawn; without it the storyline's Scene serves, which stays the design
+#              source of the image prompts. A stage of `build_up` and a step of `steps` take an
+#              `alt` of their own, since each shows another picture
+#   ai_label   the corner of the image that carries the AI label: top-right (the default,
+#              the Code of Practice's example), top-left, bottom-left or bottom-right. The
+#              build warns when the label would hide part of the drawing
+#   ai_legend  title: one line that says what the AI label marks, beside the icon,
+#              where the label first appears
+#   ai_legend_narrated
+#              title: the same line for the narrated deck, which replaces `ai_legend` there
+#              (since 2026-10-28: its voice is generated too)
+#
+# Blocks, stacked from top to bottom
+#   file        a repository file, quoted at build time. `lines` is a range ("46-53") or a
+#               list of ranges; `expect` lists text the quoted lines must contain, so an
+#               edit that moves them stops the build; `highlight` sets text in the accent
+#               colour; `reflow: true` joins the wrapped lines of a Markdown list item;
+#               `label` adds a word after the path
+#   shell      a command, with an optional literal `output` and a `label`
+#   code        literal monospaced lines, with an optional `highlight`
+#   text, caption, label
+#               prose; `code`, **bold** and *italic* work inside. `source` names a
+#               file that must contain the quoted words; the paper's reference
+#               numbers, "[4]", are left out of the comparison. `talk_only: true`
+#               leaves a text or caption out of the narrated deck
+#   bullets     a list of prose items
+#   table       literal rows: `rows`, optional `header`, `bold` (row numbers from 1),
+#               relative column `widths` and `row_headers: true` (first column bold)
+#   table_from  rows read from a Markdown table: `file`, its `header`, the `columns`
+#               and the `rows` (by first cell) to keep; `widths`, `row_headers` as above
+#   qr          close layout only: [{label, url}]; `url: null` leaves a placeholder
+
+# The look follows the author's PHUSE EU Connect 2025 deck, ML04
+# (https://phuse.s3.eu-central-1.amazonaws.com/Archive/2025/Connect/EU/Hamburg/PRE_ML04.pdf),
+# in the brand of Evidenze Germany: logo, earth and colours as on evidenze.com
+# and on chrestos.de, the former Chrestos, now Evidenze Germany.
+brand:
+  logo: slides/brand/evidenze-logo.png              # title slide and closing slide, top right
+  earth: slides/brand/evidenze-germany-earth.png    # title slide, bottom right
+  footer_logo: false                                # a small logo on every other slide
+  # Title slide, top left: the conference's own logo from PHUSE's event page, set on
+  # the page's blue (see brand/README.md); delete the line to drop it.
+  conference_logo: slides/brand/phuse-connect-2026.png
+  # The EU icon for AI-generated content, the basic "AI" in a black circle, as the
+  # EU published it with its Code of Practice on marking and labelling
+  # AI-generated content (see brand/README.md). It goes in the top right corner
+  # of every generated image, the Code's own example; delete the line to drop it.
+  ai_label: slides/brand/eu-ai-black.png
+
+contact: josua.boeser@evidenze.com                  # title and closing slides, after the name
+
+style:
+  fonts:            # Arial as in ML04; both fonts ship with PowerPoint on Windows and macOS
+    heading: Arial
+    body: Arial
+    code: Consolas
+  colours:          # hex, no '#'
+    heading: "091A40"   # Evidenze navy: titles
+    ink: "202536"       # text
+    accent: "1D4EBD"    # Evidenze blue: labels, highlighted code, table headers, "Questions"
+    brand: "27B564"     # Evidenze green: leaves, bullets, highlight rings, placeholders
+    grey: "5F6B7A"      # captions and file paths
+    rule: "D5DCE6"      # thin lines, the leaves of mechanisms still to come
+    panel: "F3F5F9"     # the card behind the quoted files
+    mark: "E4EBF5"      # rows set in bold in a table
+    drawing: "000000"   # black, as the drawings' lines: the slide number on the pictures
+  tracker: true         # seven leaves in the top right corner of a reference slide, one per mechanism
+  picture_corner: right # the slide number on the pictures, in black without a leaf: right or left; false drops it
+  # The deck's own motion (since the evening of 2026-10-19): the slides with `transition`
+  # fade in, the cards fade in, and the stages of a `build_up` fade into each other. false
+  # switches all of it off; the moving GIFs are pictures, and the stages of a build-up and a
+  # fix's `steps` are slides, so they stay (the stages since 2026-10-27).
+  motion: true
+
+# The names that float above the cast on the story slides, as in a game (the author's
+# request, 2026-10-15): the name in the story, and below it, in angle brackets, what it is
+# in Claude Code. Steve carries none: he is the player. Since the fourth run-through
+# (2026-10-21) a robot carries its name only where it first stands in the room (1.3, 4.3, 5.3), in
+# 8.1, where the whole office is named, and at the curtain call in 8.3; beat 6 keeps the
+# context window's bar without the words. Objects get `labels` where they first matter
+# and all together in 8.1.
+#
+# Each robot also has a card (the author's request, 2026-10-19), shown once, on the slide
+# after the one where it joins the team (`card` on that slide): its portrait, cut from a
+# plate of the three robots alone (slides/image-prompts.md), and up to six rows of what it
+# can and cannot do. The rows follow the storyline's checked sentences: the worker 1.3, 2.2,
+# 7.2 and 7a.1, security 4.3 and 7b.1, the reviewer 5.3 and 6.1. `seconds` is what the card
+# adds to the talk (20 unless set), `intention` the first line of its notes.
+cast:
+  worker:
+    name: Worker
+    title: Claude Code
+    card:
+      portrait: slides/beats/card-worker.png
+      intention: "Meet the worker: it gets things done, and it forgets."
+      # BRAIN names no Claude since the fifth run-through (2026-10-22): the story's maker is the
+      # Worker Company; the title and the model below keep the real names.
+      rows:
+        - [ARMS, "reads, writes, runs commands"]
+        - [BRAIN, "at the Worker Company"]
+        - [HEAD, "holds this session only"]
+        - [MEMORY, "only what is written down"]
+        - [WEAK SPOT, "can believe what it reads"]
+      # Stats: only values the documentation states (checked on 2026-10-19, Claude Code 2.1.303).
+      stats:
+        - [MODEL, "Opus 5.5"]
+        - [CONTEXT, "1M tokens"]
+      stats_note: "Opus 5.5 is the default model on the Pro, Max, Team, Enterprise and API plans, and it runs with a 1M-token context window (Model configuration docs). Say it as the brain: the worker is Claude Code, and its brain is a model, here Opus 5.5; never \"the worker is Opus 5.5\"."
+  reviewer:
+    name: Reviewer
+    title: subagent
+    card:
+      portrait: slides/beats/card-reviewer.png
+      intention: "Meet the reviewer beside the worker: its brain from the same company, no hands, a head of its own."
+      # In the worker's order, so the two cards of 5.2 line up row by row (since 2026-10-19).
+      rows:
+        - [ARMS, "none: it only reads"]
+        - [BRAIN, "at the Worker Company too"]
+        - [HEAD, "its own, not the worker's"]
+        - [EYE, "one, and a big one"]
+        - [WEAK SPOT, "sees only what it is given"]
+      # The same keys as the worker's, so the two cards of 5.2 compare across. Since 2026-10-20
+      # the reviewer names its model, Sonnet 5.5, so the room sees another Claude (the author's
+      # request after the third run-through). The repository's own reviewer sets `model: sonnet`:
+      # .claude/agents/view-reviewer.md until 2026-10-27, .claude/agents/reference-checker.md since,
+      # when the playground left, so the card stays true of the repository.
+      stats:
+        - [MODEL, "Sonnet 5.5"]
+        - [CONTEXT, "its own"]
+      stats_note: "A subagent's file can set `model: sonnet`, as this repository's reviewer, the reference checker, does; it resolves to Sonnet 5.5 on the Anthropic API, unless Claude names another model for that one call, and each subagent runs in its own context window (Model configuration and Subagents docs)."
+  security:
+    name: Security
+    title: hook
+    card:
+      portrait: slides/beats/card-security.png
+      intention: "Meet security: it does not think, so it cannot be talked round."
+      rows:
+        - [BODY, "bolted to the floor"]
+        - [BRAIN, "none: a fixed script"]
+        - [PADDLE, "says no before a tool runs"]
+        - [SEES, "only what it was told to check"]
+        - [WEAK SPOT, "misses what it was not told"]
+      stats:
+        - [EVENTS, "33"]
+        - [SAYS NO, "exit code 2"]
+        - [TIMEOUT, "600 s"]
+      stats_note: "The hooks reference lists 33 events; exit code 2 blocks on the events that can block; a command hook times out after 600 seconds on most events, PreToolUse among them, unless it sets its own `timeout` (Hooks reference)."
+  # The threat gets a card too, as a game shows a new enemy (the author's request after the third
+  # run-through, 2026-10-20): the planted letter of 7a.1 on a puppeteer's cross, its strings
+  # ending in empty loops. No name floats over it; its label is prompt injection. The rows follow
+  # the paper's chapter 9, and the stats are what the sources state, not documentation values.
+  letter:
+    name: Planted letter
+    title: prompt injection
+    card:
+      portrait: slides/beats/card-letter.png
+      tag: NEW THREAT
+      intention: "Meet the threat: an order planted in text, and it needs hands to pull."
+      rows:
+        - [COMES IN, "pages, files, notes, data cells"]
+        - [LOOKS LIKE, "an order, written for machines"]
+        - [PULLS, "any worker with hands"]
+        - [NEEDS, "data, outside text, a way out"]
+        - [WEAK SPOT, "a reader without hands"]
+      stats:
+        - [IMMUNE, "no system"]
+        - [A LEAK NEEDS, "all three"]
+      stats_note: "Anthropic's Security page: \"no system is completely immune to all attacks\". A leak through planted text needs private data in reach, text from outside and a way out together, Willison's lethal trifecta (paper, chapter 9, checked 2026-10-20)."
+  # Beat 10 brings in the EU, as a game shows a new rule (the author's request, 2026-10-27, as
+  # the secret level until 2026-10-28): the AI Act drawn as a ring of twelve stars with two gloves
+  # and a gavel. Its name floats where it comes in, 10.1, with the article it stands for, Art. 14,
+  # as the author chose (`<AI Act>` before). The rows follow Article 14(4) of the AI Act, and the
+  # stats are what the law's own text says, searched in full on 2026-10-27.
+  eu:
+    name: EU
+    title: Art. 14
+    card:
+      portrait: slides/beats/card-eu.png
+      tag: NEW RULE
+      intention: "Meet the rule from outside: for high-risk AI, a person must be able to understand, doubt, override and stop it."
+      rows:
+        - [HANDS, "two gloves and a gavel"]
+        - [WANTS, "a human who oversees"]
+        - [THE HUMAN, "understands, doubts, overrides"]
+        - [STOP, "a ‘stop’ button or similar"]
+        - [WEAK SPOT, "high-risk AI only"]
+      stats:
+        - ["“HUMAN OVERSIGHT”", "17 times"]
+        - ["“IN THE LOOP”", "never"]
+        - [APPLIES FROM, "2027 / 2028"]
+      stats_note: "Regulation (EU) 2024/1689, the AI Act, says \"human oversight\" 17 times and \"human in the loop\" never, recitals and annexes included (full text searched on 2026-10-27). Article 14 binds high-risk AI only, from 2 December 2027 under Annex III and from 2 August 2028 under Annex I, as Regulation (EU) 2026/1744 set it; its paragraph 4(e) names the 'stop' button."
+
+slides:
+  "0.1":
+    layout: title
+    # The basic icon carries no words, so the title slide says once what it marks.
+    ai_legend: "Drawings generated with AI (Nano Banana® 2.1)"
+    # The narrated deck speaks in a generated voice, so its line says so (2026-10-28).
+    ai_legend_narrated: "Drawings and voice generated with AI"
+  # The house at night opens the story, the whole slide (the title slide's small picture
+  # until 2026-10-28, the author's request: the story begins as we go into Steve's house).
+  "0.2":
+    layout: picture
+    alt: "A narrow brick house at night, every window black; only the small basement window with its pointed arch glows yellow, a bare bulb inside."
+  # The way in, on the speaker's click: the GIF starts as the slide appears (2026-10-28).
+  # Its last frame is 1.1, so the deck moves on to 1.1 by itself once it has settled, and
+  # the next click brings 1.2 (2026-10-29, the author's request: it took two clicks).
+  "0.3":
+    layout: picture
+    advance: after_gif
+    alt: "The view closes in on the house's lit basement window until its yellow light fills the picture; out of that light the basement fades in, where the programmer works alone at his bench."
+
+  # Beat 1 — Alone in the basement
+  "1.1":
+    layout: picture
+    alt: "A man sits hunched on a stool at a workbench late at night under a bare bulb that glows yellow, typing on a laptop and rubbing his tired eyes; behind him a cork board is crowded with sticky notes, a few drifting to the floor; a black book with a red seal stands alone on a wall shelf."
+  "1.2":
+    layout: picture
+    # The banister runs into the top right corner; the label's white rim cuts it
+    # just short of the icon, which reads cleanly (looked at on 2026-10-09).
+    ai_label: top-right
+    card: worker            # Steve orders the one with arms
+  "1.3":
+    layout: picture
+    names:
+      - {who: worker, at: [0.611, 0.242]}
+
+  # Beat 2 — The first hire
+  "2.1":
+    layout: picture
+  "2.2":
+    layout: picture
+  "2.3":
+    layout: picture
+    labels:
+      - {text: AGENTS.md, at: [0.176, 0.235], click: true}
+
+  # Beat 3 — The same briefing every morning
+  "3.1":
+    layout: picture
+  "3.2":
+    layout: picture
+    transition: fade        # the same camera as 3.1: the arm comes, the eraser goes
+    labels:
+      - {text: skill, at: [0.48, 0.296], click: true}
+
+  # Beat 4 — Someone wanders into the server room
+  "4.1":
+    layout: picture
+  "4.2":
+    layout: picture
+  "4.3":
+    layout: picture
+    alt: "At the bench the worker robot reaches with a feather duster towards the black book with a red seal on its shelf; a guard post bolted to the floor, a peaked cap on top, holds a red paddle up between them, and a low striped barrier with a padlock stands before the shelf."
+    names:
+      - {who: security, at: [0.5925, 0.296]}
+    card: security
+
+  # Beat 5 — Hiring for attributes
+  "5.1":
+    layout: picture
+  "5.2":
+    layout: picture
+    card: reviewer          # the one he skipped: no arms, no legs, just one big eye
+    beside: worker          # its card stands beside the worker's, the rows lined up
+  "5.3":
+    layout: picture
+    names:
+      - {who: reviewer, at: [0.731, 0.479]}
+
+  # Beat 6 — Everyone in one meeting room
+  # The bar under a name is the context window: the worker's rises through 6.1 until it
+  # bursts, and 6.2 lowers it slide by slide, to half at /compact and to a hint at /clear, for
+  # the house rules that come back; the reviewer's stays empty, since a subagent has a window
+  # of its own.
+  "6.1":
+    layout: picture
+    alt: "At a table buried under stacks of paper, the worker robot sits dizzy with spiral eyes; the gauge beside the window bursts, the stacks topple and sheets fall to the floor, a long receipt curls across it, and the programmer adds another sheet to a stack."
+    # The meeting fills up in three stages before the slide itself (the author's idea,
+    # 2026-10-19): the stacks grow until they tower over the worker's head, the gauge and the
+    # bar rise, and the worker tires. Each stage waits for the speaker's click (since
+    # 2026-10-27, the author's request; until then each stood about a second and moved on).
+    build_up:
+      stages:
+        - image: slides/beats/beat-06-context-1a.jpg
+          bars: {worker: 0.25}
+          alt: "A meeting room: the programmer, in an open robe, hands one more sheet from his stack to the worker robot, which sits upright and bright-eyed at a table with one low stack of paper; the window is clear and the gauge beside it low, and behind a glass door the reviewer robot sits at its own desk."
+        - image: slides/beats/beat-06-context-1b.jpg
+          bars: {worker: 0.5}
+          alt: "The same meeting room: two stacks of paper now stand on the table beside the worker robot, sheets are taped to the window, and the gauge climbs; the programmer hands over another sheet."
+        - image: slides/beats/beat-06-context-1c.jpg
+          bars: {worker: 0.75}
+          alt: "The same meeting room: the stacks tower over the worker robot's head, its eyelids droop, a long receipt curls from the table, more sheets cover the window and the gauge's needle is near the end; the programmer hands over yet another sheet."
+    # The last stage bursts (the author's request after the fourth run-through): the gauge
+    # cracks and the stacks topple in the picture, and the bar is full and bursts with it.
+    names:
+      - {who: worker, at: [0.311, 0.441], bar: 1, burst: true, text: false}
+      - {who: reviewer, at: [0.851, 0.437], bar: 0, text: false}
+    labels:
+      - {text: "context\nwindow", at: [0.6975, 0.37]}
+  "6.2":
+    layout: picture
+    alt: "The same room cleared: one folder on the table, the window clear, the gauge low, the recycling bin full, the worker robot upright with bright eyes, and the programmer sitting down with an empty notepad."
+    transition: fade        # the same camera as 6.1: the fix fades in
+    # The fix shows one state per slide (the author's requests after the fifth run-through,
+    # 2026-10-22; for a day the clicks of one slide carried them, and PowerPoint did not play
+    # the bar as built): /compact files the stacks into a small, orderly cupboard, bins a few
+    # sheets and makes Steve smile, the bar at half; auto-compact takes the place of the context
+    # window's label over the gauge, which compacts by itself near the end; /clear, the slide
+    # itself, shows the cleared room with nothing left but the next topic's folder, the bar down
+    # to a hint for the house rules, and the gauge is the context window again (since 2026-10-28,
+    # the author's request). The /compact label goes with the cupboard.
+    steps:
+      - image: slides/beats/beat-06-context-2a.jpg
+        bars: {worker: 0.5}
+        alt: "The same meeting room: the stacks are filed into a small cupboard of binders on the table, a few crumpled sheets lie in the bin, the gauge stands at half, the worker robot sits upright with bright eyes and the programmer smiles."
+        labels:
+          - {text: "context\nwindow", at: [0.6975, 0.37]}
+          - {text: /compact, at: [0.47, 0.415]}
+      - image: slides/beats/beat-06-context-2a.jpg
+        bars: {worker: 0.5}
+        alt: "The same meeting room: the stacks are filed into a small cupboard of binders on the table, a few crumpled sheets lie in the bin, the gauge stands at half, the worker robot sits upright with bright eyes and the programmer smiles."
+        labels:
+          - {text: /compact, at: [0.47, 0.415]}
+          - {text: auto-compact, at: [0.6975, 0.37]}
+    names:
+      - {who: worker, at: [0.311, 0.441], bar: 0.12, text: false}
+      - {who: reviewer, at: [0.851, 0.437], bar: 0, text: false}
+    labels:
+      - {text: "context\nwindow", at: [0.6975, 0.37]}
+      - {text: /clear, at: [0.7175, 0.735]}
+
+  # Beat 7 — Overnight the team forgets
+  "7.1":
+    layout: picture
+  "7.2":
+    layout: picture
+    transition: fade        # the same camera as 7.1: the whiteboard clears, the drawer opens
+    labels:
+      - {text: "auto\nmemory", at: [0.335, 0.703], click: true}
+
+  # Beat 7a — The post room
+  "7a.1":
+    layout: picture
+    alt: "Through a small pointed window high up, a cartoon villain in a top hat leans out and holds a long letter on a puppeteer's cross; the worker robot at the foot of the stairs looks up and reads it, while three strings run from the letter to one of its arms and pull it towards a bunch of keys on a hook; the programmer, back turned, draws boxes on a whiteboard."
+    labels:
+      - {text: prompt injection, at: [0.665, 0.449], click: true}   # beside the letter the villain holds (2026-10-28)
+    card: letter            # the threat comes in: its card follows, as a game shows a new enemy
+  "7a.2":
+    layout: picture
+
+  # Beat 7b — The separate office
+  "7b.1":
+    layout: picture
+    alt: "In a basement, a paper feed runs from an open black archive box into a small printing machine on the bench; the worker robot beside it reads each sheet, and a stream of small sheets leaves its antenna through an open window; a guard post stands by a shelf with the sealed black book, its paddle down, and a rack of spare arms and a booklet hang on the wall; the reviewer robot sits behind glass under the stairs, and the programmer climbs them, waving."
+    # The machine is a program the worker starts: it reads the real data, and security sees
+    # only the start (the author asked what the box stands for, 2026-10-21). Its label, program,
+    # came off after the fifth run-through (2026-10-22): the telling has no place for it.
+  "7b.3":
+    layout: picture
+    alt: "At night the programmer stands at the door of a house whose basement holds the archive boxes; across the yard, beside a window lit yellow by a bare bulb, the worker robot, carrying a folder, holds its badge to the reader at the door of a separate office."
+    labels:
+      - {text: VM · container · cloud, at: [0.7575, 0.381], click: true}
+
+  # Beat 7c — Where the sheets go
+  # The warehouse carries the provider's name over its roof: Anthropic from 2026-10-19, the
+  # Worker Company since 2026-10-21, since it need not be Anthropic (the author's request).
+  "7c.1":
+    layout: picture
+    labels:
+      - {text: Worker Company, at: [0.86, 0.405]}
+  "7c.2":
+    layout: picture
+    alt: "The basement window is shut and dark; white folders rise out of the yellow-lit window of a small office, a bare bulb inside, and fly in a short arc into the warehouse; the programmer, keys on his belt, watches with a smile."
+    transition: fade        # the same yard as 7c.1: black sheets give way to white folders
+    labels:
+      - {text: Worker Company, at: [0.86, 0.405]}
+
+  # Beat 8 — Steve runs a company, not a keyboard
+  "8.1":
+    layout: picture
+    # The legend of Steve's company: the three robots and the objects of the seven.
+    # Security's name floats over the barrier, clear of the folders on the table.
+    names:
+      - {who: worker, at: [0.536, 0.301]}
+      - {who: security, at: [0.2156, 0.613]}
+      - {who: reviewer, at: [0.805, 0.314]}
+    labels:
+      - {text: AGENTS.md, at: [0.2465, 0.184]}
+      - {text: skills, at: [0.345, 0.17]}
+      - {text: /context, at: [0.6315, 0.2195]}
+      # On the filing cabinet itself since 2026-10-21: below it, the label left the cabinet
+      # unexplained (the author asked what the box in the middle stands for).
+      - {text: "auto\nmemory", at: [0.405, 0.565]}
+      - {text: VM · container · cloud, at: [0.5, 0.986]}
+      # The white folders behind the gate, where the Book of Secrets lay until 2026-10-28: it has no
+      # place in the office (the author's request).
+      - {text: synthetic data, at: [0.236, 0.405]}
+      # The planted letter of 7a, posted to the reviewer, its strings slack: run through with a
+      # sword from 2026-10-19, in the post slot since 2026-10-21 (the author found the sword much).
+      - {text: prompt injection, at: [0.705, 0.80]}
+  "8.2":
+    layout: picture
+  # The cast waves goodbye at the end of the story: a GIF of eight frames turned from one
+  # drawing, which PowerPoint and LibreOffice play in the show. Before the closing slide since
+  # 2026-10-28 (the author's request), so the QR codes stay up for the questions; it followed
+  # them as 9.2 before.
+  "8.3":
+    layout: picture
+    names:
+      - {who: worker, at: [0.22, 0.348]}
+      - {who: reviewer, at: [0.5925, 0.366]}
+      - {who: security, at: [0.805, 0.384]}
+
+  # Close
+  "9.1":
+    layout: close
+    heading: Questions
+    panel:
+      - qr:
+          - label: Repository
+            url: https://github.com/UnfriendlySpider/how_to_tame_the_maschine_spirit
+          # PHUSE's archive with the author filter set, so it lists the author's papers and
+          # slides and shows the other filters (the author's request, 2026-10-27, in place of the
+          # paper's PDF); the page reads the filter from the address, checked that day.
+          - label: PHUSE archive
+            url: https://phuse.global/Communications/PHUSE_Archive?Author=B%C3%B6ser
+      - text: "The repository: paper and slides, and the Claude Code setup they were made with"
+      - text: "At the end of the deck: the reference part, one page per mechanism, to read after the talk"
+        talk_only: true   # the narrated deck ends here, without the reference part
+      - caption: "Checked against Claude Code 2.1.312, October 2026"
+
+  # Beat 10 — Who does the checking? A beat that answers a question (since 2026-10-28, the
+  # author's request; the day before it waited hidden at the very end as the secret level): one
+  # click after the closing slide, whose notes name it, and its last slide's notes give the number
+  # back to the questions. The narrated deck ends on the closing slide, before it.
+  "10.1":
+    layout: picture
+    alt: "The programmer in his own clothes sits on a stool, a mug in one hand, and holds out a rubber stamp to the worker robot with the other; a stern ring of twelve stars with a face raps his knuckles with a gavel held in a floating glove, and a second glove raises a finger; the worker reaches for the stamp, a stack of sheets on the table behind it."
+    # The ring of stars nearly reaches the top edge, so the EU's name floats beside it.
+    names:
+      - {who: eu, at: [0.745, 0.215]}
+    labels:
+      - {text: human oversight, at: [0.39, 0.615], click: true}
+    card: eu                # the rule comes in: its card follows, as a game shows a new rule
+  "10.2":
+    layout: picture
+    alt: "The programmer, the stamp resting in his lap and a mug in one hand, holds up a small pocket calculator; the ring of stars looks at it, surprised, one glove scratching the ring and the other holding the gavel low; the worker robot has turned back to the stack of sheets on the table."
+
+  # Reference — to read after the talk. The sentences on the left are the
+  # paper's own (`source: paper/paper.md`); the right-hand cards quote the files.
+  "R.1":
+    layout: reference
+    panel:
+      - table:
+          header: [In your company, In Claude Code, Where you find it]
+          widths: [1.9, 1.9, 4.6]
+          bold: [3, 4, 7]   # enforced outside the model
+          rows:
+            - [Onboarding document, "`CLAUDE.md`", "`CLAUDE.md` at the repository's root"]
+            - [Procedure binder, skill, "`.claude/skills/style-review/SKILL.md`"]
+            - [Locks and access rights, hook and permission rules, "`.claude/hooks/protect-build-outputs.sh`, `.claude/settings.json`"]
+            - [Read-only reviewer, subagent, "`.claude/agents/reference-checker.md`"]
+            - [Meeting discipline, context commands, "`/context`, `/compact`, `/clear`, `/usage`"]
+            - [Decision log, auto memory, "`/memory` (on the machine, not in the repository)"]
+            - [Separate premises, isolation, "a VM, a container or a cloud session"]
+      - caption: "The rows in bold hold whatever the model decides. The next seven slides take one row each. Then come untrusted input and data protection. The paper ML19 explains each one. The files named here are the ones this paper and talk were made with."
+      - label: start at the repository root
+      - shell: claude
+      - caption: "Claude Code, the worker in this talk. Start it at the root so the shared settings load."
+
+  "R.2":
+    layout: reference
+    mechanism: 1
+    split: 0.46
+    explain:
+      - label: what it is
+      - text: "It is a Markdown file at the root of your project that Claude Code reads at the start of every session. Think of it as the note you would leave a new colleague, saying where the specs live and what must never be edited. Claude follows it, usually well, but nothing enforces it."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "The second time you type the same correction, write it down."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: '"Do not write to `prod/`" in this file is advice the model usually follows. For production data, *usually* is not good enough. Anything that must never happen needs a hook (chapter 4).'
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 2"
+    panel:
+      # The rules this paper and talk were written under (since 2026-10-27, when the playground
+      # left the repository): the start of the root CLAUDE.md, which changes least.
+      - file: CLAUDE.md
+        lines: "23-37"
+        reflow: true
+        highlight: ["Every artefact is English", "British English"]
+        expect: ["## 1. Language", "Every artefact is English", "## 2. Spelling and style", "British English", "No marketing language"]
+      - caption: "This repository's own rules, read at the start of every session; `/context` lists the file. A subfolder's `CLAUDE.md` loads when Claude reads, writes or edits a file there."
+
+  "R.3":
+    layout: reference
+    mechanism: 2
+    split: 0.44
+    explain:
+      - label: what it is
+      - text: "A skill is a standard operating procedure in file form. It lives in `.claude/skills/<name>/SKILL.md` and is loaded only when needed. You call it by starting your message with a slash and its name. Claude also loads a skill unasked when it judges that the skill's description fits your request. Until then only that description sits in the context window (everything Claude can see at once)."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "The third time you explain the same multi-step procedure, write it down as a skill."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "A skill that edits what it was asked to check is not a review. `allowed-tools` blocks nothing. List `Edit`, `Write`, `NotebookEdit`, `Bash`, `PowerShell` and `Monitor` under `disallowed-tools`, since commands write files too. Or give the check to a read-only subagent (chapter 5)."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 3"
+    panel:
+      - file: .claude/skills/style-review/SKILL.md
+        lines: "1-7"
+        label: header (front matter)
+        highlight: ["description:", "disallowed-tools:"]
+        expect: ["description:", "disallowed-tools: Edit Write"]
+      - file: .claude/skills/style-review/SKILL.md
+        lines: "53-53"
+        reflow: true
+        highlight: ["Report, do not repair."]
+        expect: ["Report, do not repair."]
+      - code: /style-review 4
+
+  "R.4":
+    layout: reference
+    mechanism: 3
+    split: 0.5
+    explain:
+      - label: what it is
+      - text: "A hook is a small script that Claude Code runs at a fixed moment, for example just before it writes a file. The script sees what is about to happen and can say no."
+        source: paper/paper.md
+      # literal since the paper's chapter 4 shows the tool call as a diagram
+      - table:
+          header: ["", "`CLAUDE.md` rule", "Permission rule", "Hook"]
+          rows:
+            - [Relies on, the model, Claude Code, Claude Code]
+            - [Can block, "no", "yes, deny rules come first", "yes, exit code 2"]
+          row_headers: true
+          widths: [1.0, 1.2, 1.7, 1.2]
+      - label: when you need it
+      - text: "Wherever a wrong action is expensive or hard to reverse: production data, released reports, generated files, anything under change control."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "An untested guardrail may not work at all. By default, a hook that fails or times out lets the call through, and a mistyped path is enough. Set `onFailure: \"block\"` on every guarding hook."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 4"
+    panel:
+      # The hook that keeps hand edits out of the generated deck and paper, with its message
+      # to Claude left out (since 2026-10-27, when the playground's production hook left).
+      - file: .claude/hooks/protect-build-outputs.sh
+        lines: ["23-25", "27-28"]
+        highlight: ["exit 2"]
+        expect: ["Edit|Write)", "/out/", "exit 2"]
+      - file: .claude/settings.json
+        lines: ["8-9", "15-25"]
+        highlight: ["\"Edit(/out/**)\"", "\"PreToolUse\"", "\"onFailure\": \"block\""]
+        expect: ["\"deny\": [", "Edit(/out/**)", "\"PreToolUse\"", "protect-build-outputs.sh", "\"onFailure\": \"block\""]
+      - caption: "Exit code 2 blocks; so does a failing hook with `onFailure: \"block\"`."
+
+  "R.5":
+    layout: reference
+    mechanism: 4
+    split: 0.46
+    explain:
+      - label: what it is
+      - text: "A subagent is a second Claude that the first one hands a task to. It has its own context window (everything it can see at once, chapter 6), instructions, tool list and permissions. It starts from a task, not from your conversation, and returns a summary."
+        source: paper/paper.md
+      - text: "Each subagent you write is one Markdown file under `.claude/agents/`."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "A second pair of eyes that cannot change anything. Such a reviewer reads the output, the spec and the source data, and only reports."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "The reviewer is a fresh pair of eyes, not an independent one. Where a review must be independent, have a person or a second program do it."
+        source: paper/paper.md
+      - text: "Read its tool list before you trust its verdict: a subagent that can edit files may repair what it finds instead of reporting it."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 5"
+    panel:
+      - file: .claude/agents/reference-checker.md
+        lines: "1-6"
+        label: front matter
+        highlight: ["tools: Read, WebFetch", "model: sonnet"]
+        expect: ["tools: Read, WebFetch", "model: sonnet"]
+      - file: .claude/agents/reference-checker.md
+        lines: "18-19"
+        reflow: true
+        highlight: ["Do not edit any file."]
+        expect: ["Do not edit any file."]
+      - text: "Type `@` and pick **reference-checker**."
+
+  "R.6":
+    layout: reference
+    mechanism: 5
+    split: 0.42
+    explain:
+      - label: what it is
+      - text: "The context window is everything Claude can see at once. Every file Claude reads, every command output and every reply lands there. It is finite and measured in tokens (small units of text, a few characters each)."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "Sooner or later a long session gets vague, or the bill surprises you."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "Do not `/clear` halfway through a task whose progress is not yet written down. The new conversation starts from the files alone, unless you `/resume` the old one."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 6"
+    panel:
+      - table_from:
+          file: paper/paper.md
+          header: [Command, What it does, Use it]
+          columns: [Command, What it does, Use it]
+          rows: ["`/context`", "`/compact focus on …`", "`/clear`", "`/usage`"]
+          widths: [1.7, 2.3, 2.1]
+      - caption: "After `/clear`, the root `CLAUDE.md` is reloaded at once, a subfolder's `CLAUDE.md` when Claude next uses a file there; the conversation is saved for `/resume`."
+
+  "R.7":
+    layout: reference
+    mechanism: 6
+    split: 0.44
+    explain:
+      - label: what it is
+      - text: "A new session starts without the last conversation unless you `/resume` it."
+        source: paper/paper.md
+      - text: "Two things carry over on their own: what you wrote in `CLAUDE.md` (chapter 2), and *auto memory*, the notes Claude writes for itself. The notes are Markdown files kept per repository, one per memory, and Claude reads their index at the start of every session."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "Monday morning, and you re-explain last week's decisions to the assistant."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "Memory is not the spec. A decision that others rely on belongs in the spec or in `CLAUDE.md` as well, versioned and reviewed."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 7"
+    panel:
+      - label: a request, as typed
+      - text: "*“Remember that durations in days count the first and the last day, because the data owner asked for it.”*"
+      - code: /memory
+      - table_from:
+          file: paper/paper.md
+          header: ["", "`CLAUDE.md`", "Auto memory"]
+          columns: ["", "`CLAUDE.md`", "Auto memory"]
+          rows: [Who writes it, Contains, Loaded]
+          row_headers: true
+          widths: [1.2, 2.0, 2.6]
+      - caption: "A cloud session (chapter 8) starts on a fresh machine, so what auto memory writes there does not reach the next session."
+        source: paper/paper.md
+
+  "R.8":
+    layout: reference
+    mechanism: 7
+    split: 0.47
+    explain:
+      - label: what it is
+      - text: "Isolation changes what is within reach. The assistant works in a closed environment with no path to your own systems: a virtual machine (VM), a container or a cloud session."
+        source: paper/paper.md
+      - text: "One rule makes the rest simple: the assistant writes the program, and the program touches the data."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "Before your first session on a project, and before you open a repository you did not write (chapter 9)."
+        source: paper/paper.md
+      - text: "Whenever real data or your own keys sit within reach, as on most laptops."
+        source: paper/paper.md
+      - text: "The flag `--dangerously-skip-permissions` turns the permission prompts off. It is meant only for \"isolated environments like containers or VMs\"."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "Never switch the permission prompts off on your own machine: only in a container or VM, and not as root."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 8"
+    panel:
+      - bullets:
+          - "**VM or container:** a user of its own, not root; an access token that opens one repository and expires; `--dangerously-skip-permissions` only in here."
+          - "**Cloud session:** the GitHub App installed on this repository only; no `/web-setup`, whose token reaches every repository it can access; `main` protected by a GitHub branch rule your access cannot bypass, because the session can push to any branch your access allows."
+          - "**Both:** synthetic data only."
+      - code: /sandbox
+      - caption: "Confines the commands Claude runs, not Claude Code itself; those commands can still read your disk."
+
+  # Safety is no eighth mechanism but the seven applied to one threat, so R.9 lights no leaf.
+  "R.9":
+    layout: reference
+    split: 0.54
+    explain:
+      - label: what it is
+      - text: "Claude reads a great deal that you did not write, from web pages to free-text cells in a dataset. Text planted there to look like an order is a prompt injection, which Claude can mistake for your instructions."
+        source: paper/paper.md
+      - text: "A supply-chain attack poisons something you pull in, such as a package or an MCP server (a program that gives Claude extra tools)."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "Whenever Claude reads or installs something you did not write. A leak through planted text needs three things together, the lethal trifecta:"
+        source: paper/paper.md
+      - bullets:
+          - "private data in reach (chapter 8 keeps it out of reach)"
+          - "text from outside (this chapter)"
+          - "a way out (chapters 4 and 8 close it)"
+      - text: "Take one away."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "The dangerous case is all three at once: private data in reach, a vendor PDF to read and `git push` open. No defence is complete. Remove one."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 9"
+    panel:
+      # literal since the paper's chapter 9 shows the trifecta as a diagram
+      - table:
+          header: [Way in or out, What to do, What holds]
+          rows:
+            - ["A web page, a PDF, a vendor note", "Save it, then have a subagent read it with no shell, web, write or MCP tools", "its tool list; its report is outside text"]
+            - ["A way out: network, `git push`, an MCP tool that posts", "Deny `WebFetch`, `curl` and `wget`. Sandbox, in managed settings or with `--settings`: no allowed domains, `strictAllowlist` on, no retries outside it", "the sandbox for commands, deny rules for `WebFetch` and MCP"]
+            - ["Packages and install scripts", "Commit the lockfile, which fixes every version. Install only in a closed environment", "the lockfile and your review"]
+            - ["MCP servers, plugins, skills", "Treat each as software you install: read it, pin its version, allow only what you need", "managed settings, which your organisation sets"]
+          widths: [1.6, 2.8, 1.8]
+      # literal since the playground's unattended review left the repository (2026-10-27)
+      - code: |-
+          claude -p "Summarise vendor-note.pdf" \
+            --tools "Read,Grep,Glob" \
+            --disallowedTools "mcp__*"
+      - caption: "A reader without hands. `--tools` leaves only reading, but does not touch MCP tools, so `--disallowedTools` removes those too."
+
+  # Data protection is no mechanism either: the seven applied to personal data and
+  # to the dependence on one vendor (paper chapter 10), so R.10 lights no leaf.
+  "R.10":
+    layout: reference
+    split: 0.42
+    explain:
+      - label: what it is
+      - text: "With Claude Code you need not even paste. Your prompts and every file Claude reads go to the model provider."
+        source: paper/paper.md
+      - text: "Under the EU's GDPR, pseudonymised data stays personal data for anyone who can reasonably link it back to a person. Health data is also a special category, so pseudonymised health data falls under both."
+        source: paper/paper.md
+      - label: when you need it
+      - text: "One day, someone pastes real data into a chatbot to fix one line of code."
+        source: paper/paper.md
+      - text: "There is a second thing you hand over: control."
+        source: paper/paper.md
+      - label: the case to watch
+      - text: "Never let data about real people into a session (chapter 8), least of all on a personal account. Its consumer terms are not your company's commercial terms."
+        source: paper/paper.md
+      - caption: "Paper ML19, chapter 10"
+    panel:
+      - table_from:
+          file: paper/paper.md
+          header: [Question, What to look for]
+          columns: [Question, What to look for]
+          rows: ["Which account?", "Training on your sessions?", "Kept for how long?", "Processed where?", "Copies on your disk?"]
+          widths: [1.5, 4.5]
+      - label: a deny rule, in .claude/settings.local.json
+      - code: |-
+          { "permissions": { "deny":
+              ["Read(/data/people/**)"] } }
+      - caption: "Stops Claude's file tools, not a script that opens the file itself. `/sandbox`, with no unsandboxed retries, stops that too: it takes in the `Read(...)` deny paths."
+      - code: DISABLE_FEEDBACK_COMMAND=1
+      - caption: "Keeps `/feedback`, `/bug` and `/share` from sending the session, code included; Anthropic keeps such reports five years."
+
+  "R.11":
+    layout: reference
+    panel:
+      - text: "One task, all seven mechanisms: you add a duration in days, from start to end, to a report program."
+        source: paper/paper.md
+      - table_from:
+          file: paper/paper.md
+          header: [Step, What happens, Mechanism, What it prevents]
+          columns: [Step, What happens, Mechanism, What it prevents]
+          rows: ["0", "1", "2", "3", "4", "5", "6", "7"]
+          widths: [0.45, 5.2, 1.3, 3.1]
+      - text: "The steps that must hold (0, 3 and 5) do not depend on the model behaving well."
+        source: paper/paper.md
+
+  "R.12":
+    layout: reference
+    explain:
+      - label: 4.3 · approving prompts
+      - text: "Manual prompts … in practice users accept 93% of them anyway."
+        source: slides/storyline.md
+      - caption: 'Anthropic (John Hughes). "How we built Claude Code auto mode: a safer way to skip permissions" (engineering blog, 2026). https://www.anthropic.com/research/claude-code-auto-mode (accessed 2026-10-28).'
+        source: paper/references.md
+      - label: 7a.2 · what a leak needs
+      - text: "A leak through planted text needs three things: private data in reach, text from outside, a way out."
+        source: slides/storyline.md
+      - caption: 'Simon Willison. "The lethal trifecta for AI agents: private data, untrusted content, and external communication" (blog post, 2025). https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ (accessed 2026-10-28).'
+        source: paper/references.md
+      - label: 7c.1, 7c.2 · what the maker keeps
+      - text: "Into the Worker Company's warehouse: on a personal plan that allows training, for five years."
+        source: slides/storyline.md
+      - text: "From the office only practice data leaves, on the company's plan: kept thirty days, not used for training."
+        source: slides/storyline.md
+      - caption: 'Anthropic. "Data usage". https://code.claude.com/docs/en/data-usage (accessed 2026-10-28).'
+        source: paper/references.md
+      - label: 8.2 · what AI amplifies
+      - text: "AI doesn't fix a team; it amplifies what's already there."
+        source: slides/storyline.md
+      # DORA left the paper's reference list on 2026-10-27, so this caption
+      # is checked against no file; paper/further-reading.md keeps the source.
+      - caption: 'Google Cloud. "Announcing the 2025 DORA Report: State of AI-Assisted Software Development" (blog post, 2025). https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report (accessed 2026-10-28).'

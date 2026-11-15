@@ -1,0 +1,160 @@
+# The narrated deck: which stretch of which take each slide plays (the author's request,
+# 2026-10-21). `uv run python tools/build_slides.py --narrated` cuts the clips from the takes in
+# takes/ and builds out/PRE_<number>-narrated.pptx, which plays by itself: each slide plays its
+# clip, then moves on.
+#
+# A slide is named as the deck names it: its id, "<id> card" for the card after a robot's first
+# entrance, "<id> stage <n>" for a stage of a build-up, "<id> step <n>" for a step of a fix. Each
+# clip is a list of pieces, played in order with a paragraph pause between them; a piece is a
+# whole take, or the stretch of a take from the first words of `from` to the last of `to`,
+# written exactly as in script.md, tags left out. Across a take the pieces follow each other
+# without a gap or an overlap, and tools/check_sources.py checks that they cover every word.
+#
+# `cues` names the spoken word at which a label pops up, by the label's text in deck.yaml;
+# `rings` would name the word for a slide's waiting rings. A label without a cue pops up as the
+# slide begins. `hold` is how long a slide without a clip stays, in seconds; the last slide stays
+# until the show is ended.
+
+pause: 0.7          # seconds between pieces, as between paragraphs in the joined narration
+lead: 0.4           # silence before a clip, while the slide fades in
+tail: 0.8           # silence after it, before the slide moves on
+
+slides:
+  "0.1":
+    clip:
+      - {take: greeting}
+      - {take: part1, from: "So instead, I'm going to tell you", to: "and starts making sure."}
+  # The house at night has a slide of its own since 2026-10-28: the way into the story.
+  "0.2":
+    clip:
+      - {take: part1, from: "So first, we're going into", to: "into a little house."}
+  # The way in, on a slide of its own since the evening of 2026-10-28: the GIF plays 2.8 s, the
+  # clip with its lead and tail about 3.9 s, so the cellar stands before the slide moves on.
+  "0.3":
+    clip:
+      - {take: part1, from: "And down... into the cellar", to: "into the cellar of the house."}
+  "1.1":
+    clip:
+      - {take: part1, from: "This is Steve.", to: "he wants to use it!"}
+  "1.2":
+    clip:
+      - {take: part1, from: "So, as he wasn't really able", to: "Because arms get things done."}
+  "1.2 card":
+    clip:
+      - {take: part1, from: "This worker is a simple worker.", to: "Here: Opus five point five."}
+  "1.3":
+    clip:
+      - {take: part1, from: "And Steve thought to himself", to: "the journey of Steve and his workers."}
+
+  "2.1":
+    clip:
+      - {take: part2, from: "In the beginning, it all looked good.", to: "until he got what he wanted."}
+  "2.2":
+    clip:
+      - {take: part2, from: "Another hurdle:", to: "the old worker had known."}
+  "2.3":
+    clip:
+      - {take: part2, from: "So after some frustration,", to: "Hold on to that word: usually."}
+    cues: {AGENTS.md: "Agents-M-D"}
+
+  "3.1":
+    clip:
+      - {take: part3, from: "But there were situations", to: "Not the work."}
+  "3.2":
+    clip:
+      - {take: part3, from: "So Steve thought: why not take out", to: "it got better. Really good."}
+    cues: {skill: "skill"}
+  "4.1":
+    clip:
+      - {take: part3, from: "But then came a day when the worker grabbed", to: "this is really, really, REALLY bad."}
+  "4.2":
+    clip:
+      - {take: part3, from: "So what could he do to stop", to: "that's something else."}
+
+  "4.3":
+    clip:
+      - {take: part4, from: "So, once again, Steve called the company.", to: "one day, it will."}
+  "4.3 card":
+    clip:
+      - {take: part4, from: "But security only checks", to: "Now we have security!"}
+  "5.1":
+    clip:
+      - {take: part4, from: "And Steve, being the lazy programmer", to: "someone else to take a look."}
+  "5.2":
+    clip:
+      - {take: part4, from: "So, what did Steve do?", to: "where it went wrong."}
+  "5.2 card":
+    clip:
+      - {take: part4, from: "This is the reviewer.", to: "completely forgotten everything."}
+  "5.3":
+    clip:
+      - {take: part4, from: "The important part: you can set up a subagent", to: "pleased with all of this."}
+
+  # The meeting fills while the narrator tells it, one sentence a stage, and bursts on the last.
+  "6.1 stage 1":
+    clip:
+      - {take: part5, from: "But then came the day when Steve's projects", to: "overwhelmed his poor worker."}
+  "6.1 stage 2":
+    clip:
+      - {take: part5, from: "Because there is something", to: "The worker's short-term memory."}
+  "6.1 stage 3":
+    clip:
+      - {take: part5, from: "And researchers saw it", to: "Just digital."}
+  "6.1":
+    clip:
+      - {take: part5, from: "And honestly?", to: "we have tools for this!"}
+  # From the gentle step to the strongest, one slide each (the fifth run-through): COMPACT, the
+  # stacks in a small cupboard and the bar at half; auto-compact; CLEAR, the room cleared and a
+  # hint left in the bar.
+  "6.2 step 1":
+    clip:
+      - {take: part5, from: "You can COMPACT your conversation.", to: "what to focus on."}
+  "6.2 step 2":
+    clip:
+      - {take: part5, from: "And because we know", to: "set it up yourself, too."}
+  "6.2":
+    clip:
+      - {take: part5, from: "And when you're done with a topic", to: "One topic per meeting."}
+  "7.1":
+    clip:
+      - {take: part5, from: "But a fresh room has forgotten", to: "weren't big enough for all of it."}
+  "7.2":
+    clip:
+      - {take: part5, from: "And just so you know:", to: "versioned, and reviewed."}
+    cues: {"auto\nmemory": "auto memory"}
+
+  "7a.1":
+    clip:
+      - {take: part6, from: "Now comes something", to: "His letter does."}
+    cues: {prompt injection: "prompt injection"}
+  "7a.1 card":
+    clip:
+      - {take: part6, from: "It works a little like phishing mails.", to: "look for sensitive files."}
+  "7a.2":
+    clip:
+      - {take: part6, from: "So there are different things you can do.", to: "Not amused."}
+  "7b.1":
+    clip:
+      - {take: part7, from: "And that is one big thing", to: "HIS house that burned down."}
+  "7b.3":
+    clip:
+      - {take: part7, from: "So Steve came to the same conclusion", to: "it isn't Steve's house."}
+    cues: {VM · container · cloud: "virtual machine"}
+  "7c.1":
+    clip:
+      - {take: part7, from: "Because there's one big difference", to: "for five years."}
+  "7c.2":
+    clip:
+      - {take: part7, from: "So the other house is way better.", to: "You should do it first."}
+
+  "8.1":
+    clip:
+      - {take: part8, from: "So, at the end, we come to something like this.", to: "the walls of the office."}
+  "8.2":
+    clip:
+      - {take: part8, from: "Put what must never happen", to: "now runs on its own."}
+
+  "8.3":
+    hold: 6
+  "9.1":
+    hold: end

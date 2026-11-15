@@ -361,6 +361,12 @@ repository there, never give one clone the other's remote, and never make
 the working repository public: its history holds what the public copy
 leaves out.
 
+The README greets the reader first, in the author's own voice ("Moin,
+everyone", and "I" as in the paper's personal frame), lists only what the
+public copy holds, and says what it leaves out in a short note at its end
+(the author's request, 2026-11-15: the first copy led with what was
+missing).
+
 Rules that follow from this:
 
 - **No repository in the paper** (the author's decisions, 2026-10-08 and

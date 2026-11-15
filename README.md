@@ -1,8 +1,15 @@
 # How to Control the Machine Spirit without Just Praying for Success
 
-Source repository for a paper and talk at **PHUSE EU Connect 2026** (Glasgow,
-November 2026): the paper, the slides and the narrated deck, and the Claude
-Code setup they are made with.
+Moin, everyone, as they say in the north of Germany!
+
+This is how I made my paper and my talk for **PHUSE EU Connect 2026**
+(Glasgow, November 2026) with Claude Code. Here are the sources of the
+paper, the slides and the narrated deck, and the setup behind them: the
+rules, the hooks, the skills and the subagent I worked with. The paper
+explains each mechanism, and this repository shows them at work.
+
+Have fun reading all of it. Maybe it helps you to set up something of your
+own.
 
 ## Abstract
 
@@ -18,34 +25,20 @@ AI shouldn't be a gamble, and it shouldn't be a séance either. Let's try to tam
 paper/          paper.md (single source of truth), metadata, references, figures,
                 and further-reading.md: the studies for and against
 slides/         the talk: storyline, the deck recipe (deck.yaml), images in
-                slides/beats/, the AI label and the logos * in slides/brand/,
-                the narration, the questions to expect *
-promo/ *        what points people to the talk: the LinkedIn teaser, its
-                prompts and the post's draft, a brainstorm of further posts
-                and a carousel
+                slides/beats/, the AI label in slides/brand/, the narration
 .claude/        the Claude Code setup the paper and talk are made with:
                 settings, hooks, skills and a subagent
 tools/          build_paper.py, build_slides.py, check_sources.py,
-                release.py, export_public.py *, promo_teaser.py *,
-                promo_ideas.py *, promo_carousel.py *, the Typst template,
-                the diagrams and the animated drawings
-review/ *       the records of the reviews and of each public copy
-submission/ *   the paper and the decks as uploaded to PHUSE
+                release.py, the Typst template, the diagrams and the
+                animated drawings
+CLAUDE.md       the working rules: language, tone, accuracy, structure
 CHANGELOG.md    what changed in each release
 ```
 
-\* Only in the working repository. The work happens in a private working
-repository, and `tools/export_public.py` makes the public copy from it: a
-fresh start without the working history, and without the parts marked
-above. On GitHub, `UnfriendlySpider/how_to_tame_the_maschine_spirit` is the
-public copy. Where a note names one of the marked parts, a commit or the
-git history, it means the working repository. Without the logos the deck builds with a
-placeholder in each place, and `--final` refuses.
-
 The builds write to `out/`, a release is staged in `dist/`, and both are
 git-ignored. The [GitHub releases](https://github.com/UnfriendlySpider/how_to_tame_the_maschine_spirit/releases)
-of the public copy carry the built files: the paper as submitted, and the
-deck once the talk is given.
+carry the built files: the paper as submitted, and the deck once the talk
+is given.
 
 ## The Claude Code setup
 
@@ -96,6 +89,11 @@ file small; `--full` builds a second deck with every drawing whole, for
 print or a large screen. It combines with `--narrated`
 (`out/PRE_ML19-narrated-full.pptx`).
 
+The PHUSE and Evidenze logos are their owners' marks and stay out of the
+public copy (see below). There the deck builds with a placeholder in each
+place, and `--final` refuses; `slides/brand/README.md` says which file goes
+where.
+
 ## Make a release
 
 A release carries the paper and the deck as PHUSE names them,
@@ -121,23 +119,6 @@ of the public repository, with `--use DIR` on files built in the working
 repository, because without the logos the public copy cannot build the
 final deck.
 
-## Make the public copy
-
-In the working repository only:
-
-```sh
-uv run python tools/export_public.py ../public-stage --record review/<date>-public-export.md
-```
-
-The script copies the tracked files of the current commit into an empty
-folder, without the parts marked above, and checks the copy before anything
-can be pushed: for secrets, for the entries of a deny-list kept in
-`review/`, for e-mail addresses the paper does not print, for commits of
-the working history and for metadata in pictures and takes, and it runs the
-source checks and both builds in the copy. Its header lists every gate. A
-single finding deletes the copy. It never pushes, and the public repository
-changes only through such a copy.
-
 ## The talk
 
 The talk is deliberately different from the paper. It follows Steve, a
@@ -151,6 +132,16 @@ set-up company. The story lives only in the talk; the paper is the reference
 and borrows eight pairs and two single drawings of its pictures. See `slides/README.md`.
 
 See `CLAUDE.md` for the working rules (language, tone, accuracy, structure).
+
+## The public copy
+
+I work in a private repository, and the public one on GitHub is a copy of
+it: a fresh start without the working history. A few working files stay
+out of the copy: the review records, my notes for the Q&A, the promotion
+drafts, the files as uploaded to PHUSE, the PHUSE and Evidenze logos and
+the script that makes the copy. Where a note names one of them, a commit or
+the git history, it means the working repository. `CLAUDE.md`, section 6,
+has the details.
 
 ## Licence
 
@@ -166,9 +157,7 @@ exceptions, which keep their own terms:
   `slides/brand/`: their owners' marks, not licensed for reuse, and not part
   of the public copy.
 
-The drawings in `slides/` and `promo/` \* and the cast in `tools/diagrams/cast/` were
+The drawings in `slides/` and the cast in `tools/diagrams/cast/` were
 generated with Nano Banana® 2.1, and Claude Code drew the two diagrams in
 `paper/figures/` with Excalidraw® around that cast. The narration was
 generated with ElevenLabs Eleven v4. Both models were used through fal.
-The drawings in `promo/linkedin/ideas/` \* and `promo/linkedin/carousel/` \*
-were generated with Nano Banana 2 through Meshy.

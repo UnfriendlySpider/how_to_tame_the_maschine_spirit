@@ -166,6 +166,9 @@ DECK_PX = 1920                    # px across the slide, a projector's width: a 
                                   # (since 2026-10-29, the author's request: the deck had reached
                                   # 20 MB, a third of it in drawings sharper than a projector shows)
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+# Pillow picks its reader from a file's content, not its name, so a file called .png could
+# reach any of its readers. Every Image.open names the formats the deck takes.
+IMAGE_FORMATS = ("PNG", "JPEG", "GIF", "WEBP")
 GIF_SETTLE_MS = 500               # after a GIF's last frame appears, before the deck moves on
 
 # The EU icon for AI-generated content on every generated image: 5.5 % of the
@@ -824,9 +827,12 @@ def load_deck(story: list[StorySlide], path: Path = DECK) -> dict:
         if not re.fullmatch(r"[0-9A-Fa-f]{6}", value):
             sys.exit(f"error: style colour {name} must be six hex digits without '#', got {value!r}")
     deck["brand"] = deck.get("brand") or {}
+    for key in ("logo", "earth", "conference_logo", "ai_label"):   # footer_logo is a switch, not a path
+        if deck["brand"].get(key):
+            inside_repo(deck["brand"][key], f"brand {key}")
     # No placeholder for the AI label: a deck whose images are not labelled is not built.
     label = deck["brand"].get("ai_label")
-    if label and not (REPO / str(label)).is_file():
+    if label and not inside_repo(label, "brand ai_label").is_file():
         sys.exit(f"error: brand ai_label: {label} does not exist; restore it from slides/brand/README.md "
                  "or delete the line to build without the label")
     deck["slides"] = entries
@@ -843,7 +849,7 @@ def check_card(card: object, where: str) -> None:
     to the talk and the intention its notes give."""
     if not isinstance(card, dict) or not {"portrait", "rows"} <= set(card) <= CARD_KEYS:
         sys.exit(f"error: {where} has a `portrait` and `rows`, and may have {sorted(CARD_KEYS - {'portrait', 'rows'})}")
-    if not (REPO / str(card["portrait"])).is_file():
+    if not inside_repo(card["portrait"], f"{where}: the portrait").is_file():
         sys.exit(f"error: {where}: the portrait {card['portrait']} does not exist")
     rows = card["rows"]
     if (not isinstance(rows, list) or not 1 <= len(rows) <= 6
@@ -872,6 +878,7 @@ def check_build_up(spec: dict, where: str) -> None:
         if (not isinstance(stage, dict) or not {"image"} <= set(stage) <= {"image", "bars", "alt"}
                 or not str(stage["image"]).strip()):
             sys.exit(f"error: {where}: stage {k} has an `image` and may have `bars` and `alt`")
+        inside_repo(stage["image"], f"{where}: stage {k}")
         check_bars(stage.get("bars") or {}, barred, f"{where}: stage {k}")
 
 
@@ -887,6 +894,7 @@ def check_steps(spec: dict, where: str) -> None:
         if (not isinstance(step, dict) or not {"image"} <= set(step) <= {"image", "bars", "labels", "alt"}
                 or not str(step["image"]).strip()):
             sys.exit(f"error: {where}: step {k} has an `image` and may have `bars`, `labels` and `alt`")
+        inside_repo(step["image"], f"{where}: step {k}")
         check_bars(step.get("bars") or {}, barred, f"{where}: step {k}")
         for entry in step.get("labels") or []:
             if not isinstance(entry, dict) or set(entry) != {"text", "at"} or not str(entry["text"]).strip():
@@ -1004,6 +1012,15 @@ HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)       # notes in a source, never 
 def normalised(text: str) -> str:
     text = CITATION.sub("", text)
     return " ".join(re.sub(r"[*`\"“”‘’]", "", text).lower().split())
+
+
+def inside_repo(rel: str, where: str) -> Path:
+    """REPO / rel, resolved; stops the build when it lies outside the repository. The file need
+    not exist: a missing logo stays a placeholder."""
+    path = (REPO / str(rel)).resolve()
+    if REPO not in path.parents:
+        sys.exit(f"error: {where}: {rel} lies outside the repository")
+    return path
 
 
 def repo_file(rel: str, where: str) -> Path:
@@ -1199,7 +1216,7 @@ def find_image(rel: str | None) -> Path | None:
     """The image file for a storyline path; a .png, .jpg, .jpeg, .webp or .gif of the same name also counts."""
     if not rel:
         return None
-    base = IMAGE_DIR / Path(rel).name if IMAGE_DIR else REPO / rel
+    base = IMAGE_DIR / Path(rel).name if IMAGE_DIR else inside_repo(rel, "image")
     for candidate in [base] + [base.with_suffix(e) for e in IMAGE_EXTS if e != base.suffix]:
         if candidate.is_file():
             return candidate
@@ -1221,14 +1238,14 @@ def embeddable(path: Path, px: int | None = None) -> Path:
     suffix = path.suffix.lower()
     if suffix == ".gif":
         return path
-    with Image.open(path) as im:
+    with Image.open(path, formats=IMAGE_FORMATS) as im:
         width = im.width
     if px and width > px:
         ext = ".png" if suffix in (".png", ".webp") else ".jpg"
         target = CACHE / f"{path.stem}-{cache_tag(path)}-{px}w{ext}"
         if not target.exists():
             CACHE.mkdir(parents=True, exist_ok=True)
-            with Image.open(path) as im:
+            with Image.open(path, formats=IMAGE_FORMATS) as im:
                 small = im.resize((px, round(im.height * px / im.width)), Image.LANCZOS)
                 if ext == ".jpg":
                     small.convert("RGB").save(target, quality=90, subsampling=0)
@@ -1240,14 +1257,14 @@ def embeddable(path: Path, px: int | None = None) -> Path:
     target = CACHE / f"{path.stem}-{cache_tag(path)}.png"
     if not target.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
-        with Image.open(path) as im:
+        with Image.open(path, formats=IMAGE_FORMATS) as im:
             im.save(target)
     return target
 
 
 def gif_play_ms(path: Path) -> int:
     """How long a GIF plays before its last frame, in milliseconds."""
-    with Image.open(path) as im:
+    with Image.open(path, formats=IMAGE_FORMATS) as im:
         durations = []
         for k in range(getattr(im, "n_frames", 1)):
             im.seek(k)
@@ -1312,7 +1329,7 @@ class Ctx:
         and crops it on the slide, so the file stays as the EU published it.
         """
         if self._label_crop is None:
-            with Image.open(self.label) as im:
+            with Image.open(self.label, formats=IMAGE_FORMATS) as im:
                 width, height = im.size
                 box = im.getchannel("A").getbbox() if "A" in im.getbands() else None
             left, top, right, bottom = box or (0, 0, width, height)
@@ -1633,6 +1650,8 @@ def narration_plan(story: list[StorySlide], deck: dict) -> dict[str, dict]:
         pieces = []
         for piece in entry.get("clip") or []:
             take = piece.get("take")
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", str(take)):
+                sys.exit(f"error: {where}: {name}: a take is named with letters, digits, - and _, got {take!r}")
             if not (TAKES / f"{take}.mp3").is_file():
                 sys.exit(f"error: {where}: {name}: no take {TAKES.relative_to(REPO)}/{take}.mp3")
             if "from" not in piece and "to" not in piece:
@@ -1707,7 +1726,8 @@ def cut_narration(plan: dict[str, dict]) -> dict[str, Clip]:
 
     def decode(take: str) -> None:
         wav = work / f"{take}.wav"
-        subprocess.run([exe, "-y", "-loglevel", "error", "-i", str(TAKES / f"{take}.mp3"), "-ac", "1",
+        # `-f mp3`: ffmpeg reads a take as MP3 and as nothing else, whatever its content looks like
+        subprocess.run([exe, "-y", "-loglevel", "error", "-f", "mp3", "-i", str(TAKES / f"{take}.mp3"), "-ac", "1",
                         "-ar", str(rate), "-c:a", "pcm_s16le", str(wav)], check=True)
         with wave.open(str(wav)) as w:
             pcm[take] = w.readframes(w.getnframes())
@@ -1869,7 +1889,7 @@ def add_brand_picture(slide, key: str, y: float, h: float, ctx: Ctx, *, x: float
         add_lines(slide, x if x is not None else SLIDE_W - MARGIN - 3.0, y, 3.0, h, ctx,
                   [{"text": f"{key}: {rel}", "size": 9, "font": "code", "colour": "grey"}])
         return
-    with Image.open(path) as im:
+    with Image.open(path, formats=IMAGE_FORMATS) as im:
         w = h * im.width / im.height
     pic = slide.shapes.add_picture(str(embeddable(path)), E(SLIDE_W - MARGIN - w if x is None else x),
                                    E(y), E(w), E(h))
@@ -2046,7 +2066,7 @@ def dimmed(path: Path) -> Path:
     target = CACHE / f"{path.stem}-{cache_tag(path)}-veiled.jpg"
     if not target.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
-        with Image.open(path) as im:
+        with Image.open(path, formats=IMAGE_FORMATS) as im:
             frame = im.convert("RGB")   # an animated GIF gives its first frame
             Image.blend(frame, Image.new("RGB", frame.size, "white"), CARD_VEIL).save(target, quality=90)
     return target
@@ -2066,7 +2086,7 @@ def place_picture(slide, story: StorySlide, x: float, y: float, w: float, h: flo
     """
     path = source or find_image(story.image)
     if path:
-        with Image.open(path) as im:
+        with Image.open(path, formats=IMAGE_FORMATS) as im:
             img_w, img_h = im.size
             moving = path.suffix.lower() == ".gif" and getattr(im, "is_animated", False)
             crop = crop_window(img_w, img_h, w, h, focus, zoom)
@@ -2604,7 +2624,7 @@ def draw_card(slide, sid: str, who: dict, ctx: Ctx, *, x: float | None = None, t
     # frame's top right corner, on white and clear of the drawing.
     fx, fy, fw = x + CARD_PAD, y + CARD_PAD + 0.05, CARD_W - 2 * CARD_PAD
     portrait = REPO / str(card["portrait"])
-    with Image.open(portrait) as im:
+    with Image.open(portrait, formats=IMAGE_FORMATS) as im:
         pw = PORTRAIT_H * im.width / im.height
     pic = slide.shapes.add_picture(str(embeddable(portrait)), E(fx + (fw - pw) / 2), E(fy), E(pw), E(PORTRAIT_H))
     pic.name = f"Portrait {who['name']}"
@@ -2781,8 +2801,16 @@ def variant_of(path: Path) -> str:
     return next(v for v in VARIANTS if path.stem.endswith(v))
 
 
+def check_paper_number(number: str) -> None:
+    """The paper number becomes part of a file name, so it is letters, digits, `-` and `_`."""
+    if number and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", number):
+        sys.exit(f"error: paper/metadata.yaml: paper_number {number!r} is not a file-name part "
+                 "(letters, digits, - and _)")
+
+
 def output_path(meta: dict, narrated: bool = False, full: bool = False) -> Path:
     number = str(meta.get("paper_number", "") or "").strip()
+    check_paper_number(number)
     suffix = variant_suffix(narrated, full)
     return OUT / (f"PRE_{number}{suffix}.pptx" if number else f"talk{suffix}.pptx")
 

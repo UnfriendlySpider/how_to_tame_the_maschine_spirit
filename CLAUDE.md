@@ -388,12 +388,18 @@ Rules that follow from this:
   (for the reviewer also no `memory` field and no `Agent`, since 2026-10-28),
   checks the settings file, any file-card path, the pitfalls cards and the
   reference list, and checks every file excerpt and sentence the slides
-  quote.
+  quote. Since 2026-11-16, after a security review of the repository, it
+  also refuses a skill whose `allowed-tools` pre-approve every use of a tool
+  that writes, runs commands, starts a subagent or fetches a page.
 - The same mechanisms serve the author: a hook refuses hand edits to `out/` and
   `dist/`; `/build-paper`, `/verify-claim`, `/add-reference` and
   `/style-review` are the author's skills (the last, like every review
   skill, takes the write tools away); the `reference-checker` agent audits
-  the reference list.
+  the reference list. The committed settings pre-approve no command (since
+  2026-11-16): a pre-approved build would run scripts that Claude can edit
+  without a prompt in `acceptEdits` and auto mode. `/build-paper`
+  pre-approves the build for the turn that invokes it, and a personal rule
+  belongs in `.claude/settings.local.json`.
 - Subagents may be launched without asking wherever they help: bulk reading,
   broad searches, a second check of a change, independent tasks in parallel.
   That includes the repo's own agents and the built-in ones. What a subagent

@@ -38,6 +38,8 @@ BEATS = REPO / "slides" / "beats"
 HOUSE = BEATS / "beat-00-title-1.jpg"
 CELLAR = BEATS / "beat-01-alone-1.jpg"
 TARGET = BEATS / "beat-00-title-2.gif"
+DRAWING_FORMATS = ("PNG", "JPEG", "GIF")   # the drawings, and the GIF this tool reads back;
+                                           # Pillow would otherwise read any format
 
 SIZE = (2752, 1536)      # the GIF's frame, the drawings' own size
 SUPER = 2                # the house is drawn at twice that size, then halved
@@ -111,8 +113,8 @@ def main() -> None:
     ap.add_argument("--output", type=Path, default=TARGET)
     args = ap.parse_args()
 
-    house = Image.open(HOUSE).convert("RGB")
-    cellar = Image.open(CELLAR).convert("RGB")
+    house = Image.open(HOUSE, formats=DRAWING_FORMATS).convert("RGB")
+    cellar = Image.open(CELLAR, formats=DRAWING_FORMATS).convert("RGB")
     if house.size != cellar.size:
         raise SystemExit(f"error: {HOUSE.name} and {CELLAR.name} differ in size")
 
@@ -138,7 +140,7 @@ def main() -> None:
     gif[0].save(out, save_all=True, append_images=gif[1:], duration=durations,
                 disposal=1, optimize=False)
     shown = out.relative_to(REPO) if REPO in out.parents else out
-    with Image.open(out) as written:   # Pillow merges frames that repeat, such as the lit ones
+    with Image.open(out, formats=DRAWING_FORMATS) as written:   # Pillow merges frames that repeat, such as the lit ones
         count = written.n_frames
     print(f"wrote {shown}: {count} frames, {sum(durations[:-1]) / 1000:.2f} s before the last, "
           f"{out.stat().st_size / 1e6:.1f} MB")

@@ -15,7 +15,11 @@ requires-python = ">=3.11"
 # We render Markdown with the vendored `cmarker` Typst package instead (see
 # tools/vendor/cmarker/). The slides add python-pptx, which brings lxml and
 # Pillow (both with arm64 wheels), and segno for the QR codes (pure Python).
+# Pillow is named here although python-pptx brings it: the tools import it
+# themselves, and 13.0.0 is the first release with the fixes to its image
+# readers that OSV lists against 12.3.0.
 dependencies = [
+    "pillow>=13.0.0",
     "typst>=0.15.0",
     "pyyaml>=6",
     "python-pptx>=1.0.2",
@@ -28,7 +32,14 @@ dependencies = [
 #   uv run --group narration python tools/build_slides.py --narrated
 [dependency-groups]
 narration = [
-    "imageio-ffmpeg>=0.5",
+    "imageio-ffmpeg>=0.8.1",
+]
+
+# tools/diagrams/cut_cast.py cuts the diagram cast out of its character sheet with numpy; only
+# that script needs it:
+#   uv run --group diagrams python tools/diagrams/cut_cast.py SHEET
+diagrams = [
+    "numpy>=2",
 ]
 
 [tool.uv]

@@ -665,6 +665,9 @@ def build() -> None:
     REPO_URL = str(meta.get("repository", "") or "")
     REPO_BRANCH = str(meta.get("branch", "main") or "main")
     number = str(meta.get("paper_number", "") or "").strip()
+    if number and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", number):
+        sys.exit(f"error: paper/metadata.yaml: paper_number {number!r} is not a file-name part "
+                 "(letters, digits, - and _)")
     PDF = OUT / (f"PAP_{number}.pdf" if number else "paper.pdf")
     # A renamed paper number must not leave yesterday's PDF next to today's.
     for stale in list(OUT.glob("PAP_*.pdf")) + [OUT / "paper.pdf"]:

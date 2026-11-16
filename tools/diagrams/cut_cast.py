@@ -8,7 +8,7 @@ it through. Its lines are then thickened by seven pixels, a minimum filter
 on the colour and a maximum filter on the alpha, so that drawn 130 to 210
 diagram units tall they print as thick as the boxes' strokes.
 
-Usage: uv run python tools/diagrams/cut_cast.py SHEET
+Usage: uv run --group diagrams python tools/diagrams/cut_cast.py SHEET
 SHEET is the PNG that fal returned (2752 x 1536); the kept JPEG,
 slides/studies/excalidraw-cast-sheet.jpg, gives nearly the same cut."""
 import sys
@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 OUT = Path(__file__).resolve().parent / "cast"
+SHEET_FORMATS = ("PNG", "JPEG")   # what the sheet is; Pillow would otherwise read any format
 # the empty columns between the figures on the sheet of 2026-10-26
 COLUMNS = {"worker": (70, 702), "reviewer": (765, 1147), "security": (1148, 1680),
            "letter": (1690, 2109), "programmer": (2150, 2670)}
@@ -60,7 +61,7 @@ def thicken(im: Image.Image, size: int = THICKEN) -> Image.Image:
 
 
 def main() -> None:
-    sheet = np.asarray(Image.open(sys.argv[1]).convert("RGB")).astype(np.int32)
+    sheet = np.asarray(Image.open(sys.argv[1], formats=SHEET_FORMATS).convert("RGB")).astype(np.int32)
     sheet = np.pad(sheet, ((PAD, PAD), (PAD, PAD), (0, 0)), constant_values=255)
     OUT.mkdir(exist_ok=True)
     for name, (x0, x1) in COLUMNS.items():

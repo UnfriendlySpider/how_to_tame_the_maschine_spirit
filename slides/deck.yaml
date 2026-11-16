@@ -642,7 +642,7 @@ slides:
         highlight: ["exit 2"]
         expect: ["Edit|Write)", "/out/", "exit 2"]
       - file: .claude/settings.json
-        lines: ["8-9", "15-25"]
+        lines: ["4-5", "12-22"]
         highlight: ["\"Edit(/out/**)\"", "\"PreToolUse\"", "\"onFailure\": \"block\""]
         expect: ["\"deny\": [", "Edit(/out/**)", "\"PreToolUse\"", "protect-build-outputs.sh", "\"onFailure\": \"block\""]
       - caption: "Exit code 2 blocks; so does a failing hook with `onFailure: \"block\"`."

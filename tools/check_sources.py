@@ -17,7 +17,11 @@ paper's sentences. This script makes that testable:
                  (a name ending in -review, such as style-review) takes every
                  tool that writes or runs commands away with
                  disallowed-tools (Edit, Write, NotebookEdit, Bash,
-                 PowerShell, Monitor);
+                 PowerShell, Monitor); no skill pre-approves a tool that
+                 writes, runs commands, starts a subagent or fetches a page
+                 for every use in allowed-tools (Bash, PowerShell, Monitor,
+                 Edit, Write, NotebookEdit, Agent, Task, WebFetch,
+                 WebSearch without a rule in brackets);
   * agents     — every .claude/agents/*.md has a lowercase-hyphen name equal to
                  its file stem, and a description; reference-checker, which
                  the reference part shows as the read-only reviewer, grants
@@ -82,6 +86,8 @@ AGENT_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 TOOL_SEPARATOR = re.compile(r",\s*|\s+(?![^()]*\))")
 WRITE_TOOLS = {"Edit", "Write", "NotebookEdit", "Bash", "PowerShell", "Monitor"}
 SPAWN_TOOLS = {"Agent", "Task"}   # Task is the Agent tool's old name, still accepted as an alias
+# Tools a skill must not pre-approve as a whole: they write, run commands, start a subagent or fetch a page.
+BROAD_TOOLS = WRITE_TOOLS | SPAWN_TOOLS | {"WebFetch", "WebSearch"}
 # What the read-only reviewer may hold. Anything else, an MCP server's tools included, can act.
 READ_ONLY_TOOLS = {"Read", "Grep", "Glob", "WebFetch", "WebSearch"}
 READ_ONLY_REVIEWER = "reference-checker"   # R.5 shows it as the reviewer that cannot change a file
@@ -202,10 +208,20 @@ def frontmatter(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def tool_names(value: object) -> set[str]:
-    """Tool names in a frontmatter field: 'Read, Grep', 'Read Grep' or a YAML list."""
+def tool_items(value: object) -> list[str]:
+    """Items of a frontmatter tool field as written, rules in brackets kept: 'Read, Grep', 'Read Grep' or a YAML list."""
     items = TOOL_SEPARATOR.split(value.strip()) if isinstance(value, str) else [str(v) for v in value or []]
-    return {item.split("(")[0].strip() for item in items if item.strip()}
+    return [item.strip() for item in items if item.strip()]
+
+
+def tool_names(value: object) -> set[str]:
+    """Tool names in a frontmatter field, without any rule in brackets."""
+    return {item.split("(")[0].strip() for item in tool_items(value)}
+
+
+def bare_tools(value: object) -> set[str]:
+    """Tools that a field names as a whole, with no rule in brackets, from the set that writes, runs or fetches."""
+    return {item for item in tool_items(value) if item in BROAD_TOOLS}
 
 
 def check_skills() -> None:
@@ -226,6 +242,14 @@ def check_skills() -> None:
         if name and name != skill.parent.name:
             fail(f"{rel}: name '{name}' differs from directory '{skill.parent.name}'")
             continue
+        if fm.get("allowed-tools"):
+            broad = bare_tools(fm.get("allowed-tools"))
+            if broad:
+                fail(f"{rel}: allowed-tools pre-approves {', '.join(sorted(broad))} for every use; "
+                     "name what the tool may do, such as WebFetch(domain:...) or Bash(uv run ...), "
+                     "or leave it out so the call asks")
+                continue
+            ok(f"{rel}: allowed-tools pre-approves no tool as a whole")
         if skill.parent.name.endswith("-review"):
             removed = tool_names(fm.get("disallowed-tools"))
             if not WRITE_TOOLS <= removed:
@@ -445,7 +469,7 @@ def check_slides() -> None:
             fail("tools/template.typ: `ai-label` no longer has the form this check reads")
             return
         from PIL import Image
-        with Image.open(REPO / str(label)) as im:
+        with Image.open(build_slides.inside_repo(label, "brand ai_label"), formats=build_slides.IMAGE_FORMATS) as im:
             left, top, right, _ = im.getchannel("A").getbbox()
             actual = (right - left, left, top, *im.size)
         expected = tuple(int(v) for v in m.group(1, 2, 3, 5, 6))

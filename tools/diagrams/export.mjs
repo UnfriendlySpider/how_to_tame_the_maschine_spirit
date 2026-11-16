@@ -4,6 +4,7 @@
 // Usage: node export.mjs spec.json out-prefix [scale] [padding]
 // The paper's diagrams use scale 3 and padding 10 (README.md in this folder).
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -13,9 +14,16 @@ const [specPath, outPrefix, scaleArg] = process.argv.slice(2);
 const SCALE = Number(scaleArg || 4);
 const PAD = Number(process.argv[5] ?? 12);
 const LIB = path.join(path.dirname(new URL(import.meta.url).pathname), 'lib');
-if (!fs.existsSync(path.join(LIB, 'excalidraw-utils.min.js'))) {
-  console.error('missing tools/diagrams/lib/: run tools/diagrams/fetch-lib.sh once');
-  process.exit(1);
+// Nothing is loaded from lib/ before its three files match lib.sha256.
+for (const line of fs.readFileSync(path.join(path.dirname(LIB), 'lib.sha256'), 'utf8').split('\n')) {
+  const [want, name] = line.trim().split(/\s+/);
+  if (!name) continue;
+  const file = path.join(LIB, name);
+  const got = fs.existsSync(file) ? crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') : null;
+  if (got !== want) {
+    console.error(`tools/diagrams/lib/${name} is ${got === null ? 'missing' : 'not the pinned file'}: run tools/diagrams/fetch-lib.sh`);
+    process.exit(1);
+  }
 }
 const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
 

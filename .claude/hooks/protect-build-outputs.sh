@@ -6,7 +6,10 @@
 # dist/         holds the files staged by tools/release.py for a GitHub release.
 #
 # The tool call arrives as JSON on stdin; exit 2 blocks it, and stderr tells
-# Claude why.
+# Claude why. Only the project's own out/ and dist/ count, however the path
+# is spelt: it is made absolute, `.` and `..` are taken out, folder links are
+# followed, and upper and lower case count as the same, as they do on macOS
+# and Windows.
 set -euo pipefail
 
 input="$(cat)"
@@ -18,15 +21,51 @@ fi
 
 tool="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 file_path="$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')"
-file_path="${file_path//\\//}"
+cwd="$(printf '%s' "$input" | jq -r '.cwd // empty')"
+
+# The path as the file system sees it.
+canonical() {
+  local path="${1//\\//}" drive="" clean="" part tail=""
+  if [[ "$path" != /* && "$path" != [A-Za-z]:/* ]]; then   # relative: from the session's folder
+    path="${cwd:-$PWD}/$path"
+    path="${path//\\//}"
+  fi
+  if [[ "$path" == [A-Za-z]:/* ]]; then   # a Windows path, C:/...
+    drive="${path%%/*}"
+    path="${path#*:}"
+  fi
+  while [[ -n "$path" ]]; do              # take out `.`, `..` and doubled slashes
+    part="${path%%/*}"
+    if [[ "$path" == */* ]]; then path="${path#*/}"; else path=""; fi
+    case "$part" in
+      ""|.) ;;
+      ..) clean="${clean%/*}" ;;
+      *) clean="$clean/$part" ;;
+    esac
+  done
+  while [[ -n "$clean" && ! -d "$drive$clean" ]]; do   # the part that does not exist yet
+    tail="/${clean##*/}$tail"
+    clean="${clean%/*}"
+  done
+  clean="$(cd -P "$drive${clean:-/}" 2>/dev/null && pwd -P)" || clean="$drive$clean"
+  printf '%s%s' "${clean%/}" "$tail"
+}
+
+root="$(canonical "${CLAUDE_PROJECT_DIR:-${cwd:-$PWD}}")"
+file_path="$(canonical "$file_path")"
+
+inside() {   # is the path $1 inside the project's folder $2?
+  [[ "$1" == "$root/$2/"* ]]
+}
+shopt -s nocasematch
 
 case "$tool" in
   Edit|Write)
-    if [[ "$file_path" == *"/out/"* || "$file_path" == out/* ]]; then
+    if inside "$file_path" out; then
       echo "Blocked: '$file_path' is generated. Edit paper/paper.md or tools/template.typ and rebuild with: uv run python tools/build_paper.py (for the deck: slides/storyline.md or slides/deck.yaml, then uv run python tools/build_slides.py)" >&2
       exit 2
     fi
-    if [[ "$file_path" == *"/dist/"* || "$file_path" == dist/* ]]; then
+    if inside "$file_path" dist; then
       echo "Blocked: '$file_path' is staged for a release. Rebuild with: uv run python tools/release.py <tag>" >&2
       exit 2
     fi

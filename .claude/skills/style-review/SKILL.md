@@ -3,7 +3,7 @@ name: style-review
 description: Review one chapter of paper/paper.md for sentence style, against the rules in CLAUDE.md section 3 (actor as subject, verb early, new information last, one hedge per claim, citations where their clause ends). Reports wording to change and never edits. Use when asked to polish, tighten or check the style of a chapter.
 argument-hint: "[chapter title or number]"
 allowed-tools: Read Grep Glob
-disallowed-tools: Edit Write NotebookEdit Bash PowerShell Monitor
+disallowed-tools: Edit Write NotebookEdit Bash PowerShell Monitor Agent
 ---
 
 # Style review of one chapter

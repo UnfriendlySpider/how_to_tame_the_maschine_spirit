@@ -390,12 +390,16 @@ Rules that follow from this:
   reference list, and checks every file excerpt and sentence the slides
   quote. Since 2026-11-16, after a security review of the repository, it
   also refuses a skill whose `allowed-tools` pre-approve every use of a tool
-  that writes, runs commands, starts a subagent or fetches a page.
+  that writes, runs commands, starts a subagent or fetches a page. It
+  refuses a review skill that keeps `Agent` too, and a reviewer that holds a
+  web tool beside a tool that reads files, since what it reads it could send
+  out.
 - The same mechanisms serve the author: a hook refuses hand edits to `out/` and
   `dist/`; `/build-paper`, `/verify-claim`, `/add-reference` and
   `/style-review` are the author's skills (the last, like every review
   skill, takes the write tools away); the `reference-checker` agent audits
-  the reference list. The committed settings pre-approve no command (since
+  the reference list it is handed, since it holds no tool that reads files.
+  The committed settings pre-approve no command (since
   2026-11-16): a pre-approved build would run scripts that Claude can edit
   without a prompt in `acceptEdits` and auto mode. `/build-paper`
   pre-approves the build for the turn that invokes it, and a personal rule

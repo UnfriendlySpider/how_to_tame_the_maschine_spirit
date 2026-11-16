@@ -638,9 +638,9 @@ slides:
       # The hook that keeps hand edits out of the generated deck and paper, with its message
       # to Claude left out (since 2026-10-27, when the playground's production hook left).
       - file: .claude/hooks/protect-build-outputs.sh
-        lines: ["23-25", "27-28"]
+        lines: ["62-64", "66-67"]
         highlight: ["exit 2"]
-        expect: ["Edit|Write)", "/out/", "exit 2"]
+        expect: ["Edit|Write)", "inside \"$file_path\" out", "exit 2"]
       - file: .claude/settings.json
         lines: ["4-5", "12-22"]
         highlight: ["\"Edit(/out/**)\"", "\"PreToolUse\"", "\"onFailure\": \"block\""]
@@ -670,10 +670,10 @@ slides:
       - file: .claude/agents/reference-checker.md
         lines: "1-6"
         label: front matter
-        highlight: ["tools: Read, WebFetch", "model: sonnet"]
-        expect: ["tools: Read, WebFetch", "model: sonnet"]
+        highlight: ["tools: WebFetch", "model: sonnet"]
+        expect: ["tools: WebFetch", "model: sonnet"]
       - file: .claude/agents/reference-checker.md
-        lines: "18-19"
+        lines: "23-24"
         reflow: true
         highlight: ["Do not edit any file."]
         expect: ["Do not edit any file."]

@@ -36,6 +36,7 @@ REPO = Path(__file__).resolve().parent.parent
 POSE_A = REPO / "slides" / "studies" / "anim-04-goodbye-out-own-clothes.png"
 POSE_M = REPO / "slides" / "studies" / "anim-02-goodbye-middle.png"
 TARGET = REPO / "slides" / "beats" / "beat-08-team-3.gif"
+DRAWING_FORMATS = ("PNG", "JPEG")   # what the drawings are; Pillow would otherwise read any format
 
 # Everything below is in pixels of the 2752 x 1536 drawing.
 
@@ -181,7 +182,10 @@ def seven_colours(frame: Image.Image) -> Image.Image:
 
 
 def make_frames(count: int) -> list[Image.Image]:
-    base = strip_from_m(Image.open(POSE_A).convert("RGB"), Image.open(POSE_M).convert("RGB"))
+    base = strip_from_m(
+        Image.open(POSE_A, formats=DRAWING_FORMATS).convert("RGB"),
+        Image.open(POSE_M, formats=DRAWING_FORMATS).convert("RGB"),
+    )
     size = base.size
     silhouettes, covers = {}, {}
     for name, part in PARTS.items():

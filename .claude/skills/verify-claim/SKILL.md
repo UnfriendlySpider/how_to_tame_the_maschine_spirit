@@ -3,7 +3,7 @@ name: verify-claim
 description: Check a claim about a Claude Code feature (hooks, skills, settings, subagents, memory, context, slash commands) against the official documentation before it goes into the paper. Use whenever a sentence asserts what Claude Code does or supports.
 argument-hint: "[the claim in one sentence]"
 allowed-tools: WebFetch(domain:code.claude.com)
-disallowed-tools: Edit Write NotebookEdit Bash PowerShell Monitor
+disallowed-tools: Edit Write NotebookEdit Bash PowerShell Monitor Agent
 ---
 
 # Verify a feature claim

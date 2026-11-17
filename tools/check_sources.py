@@ -11,19 +11,32 @@ paper's sentences. This script makes that testable:
   * hooks      — each script in .claude/hooks/ is fed crafted tool-call JSON on
                  stdin and must return the expected exit code (2 = block);
                  the build-output hook must also fail closed without jq and
-                 refuse edits to the release files staged in dist/;
+                 refuse edits to the release files staged in dist/, and it
+                 compares real paths: it refuses OUT/ in upper case, a
+                 relative out/ path and a file reached through a linked
+                 folder, and lets through paper/dist/, an out/ folder
+                 outside the project and a project that lives under a
+                 folder named dist;
   * skills     — every SKILL.md has YAML frontmatter with a description, and a
                  name (if given) equal to its directory; every review skill
                  (a name ending in -review, such as style-review) takes every
                  tool that writes or runs commands away with
                  disallowed-tools (Edit, Write, NotebookEdit, Bash,
-                 PowerShell, Monitor);
+                 PowerShell, Monitor) and Agent too, since a subagent
+                 brings tools of its own; no skill pre-approves a tool that
+                 writes, runs commands, starts a subagent or fetches a page
+                 for every use in allowed-tools (Bash, PowerShell, Monitor,
+                 Edit, Write, NotebookEdit, Agent, Task, WebFetch,
+                 WebSearch without a rule in brackets);
   * agents     — every .claude/agents/*.md has a lowercase-hyphen name equal to
                  its file stem, and a description; reference-checker, which
                  the reference part shows as the read-only reviewer, grants
                  only reading tools (no write, MCP or Agent tool: a subagent
-                 it starts would bring tools of its own) and has no memory
-                 field (it gives Read, Write and Edit back);
+                 it starts would bring tools of its own), holds no web tool
+                 (WebFetch, WebSearch) beside a tool that reads files (Read,
+                 Grep, Glob), since a page it fetches could have it send a
+                 file out, and has no memory field (it gives Read, Write
+                 and Edit back);
   * settings   — .claude/settings.json is valid JSON, every hook command points
                  at an existing executable, the build-output hook is matched
                  for Edit and Write, every PreToolUse hook sets
@@ -82,8 +95,12 @@ AGENT_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 TOOL_SEPARATOR = re.compile(r",\s*|\s+(?![^()]*\))")
 WRITE_TOOLS = {"Edit", "Write", "NotebookEdit", "Bash", "PowerShell", "Monitor"}
 SPAWN_TOOLS = {"Agent", "Task"}   # Task is the Agent tool's old name, still accepted as an alias
+# Tools a skill must not pre-approve as a whole: they write, run commands, start a subagent or fetch a page.
+BROAD_TOOLS = WRITE_TOOLS | SPAWN_TOOLS | {"WebFetch", "WebSearch"}
 # What the read-only reviewer may hold. Anything else, an MCP server's tools included, can act.
 READ_ONLY_TOOLS = {"Read", "Grep", "Glob", "WebFetch", "WebSearch"}
+WEB_TOOLS = {"WebFetch", "WebSearch"}
+FILE_READ_TOOLS = {"Read", "Grep", "Glob"}
 READ_ONLY_REVIEWER = "reference-checker"   # R.5 shows it as the reviewer that cannot change a file
 
 failures: list[str] = []
@@ -153,9 +170,47 @@ def check_hooks() -> None:
         else:
             fail(f"{label} -> exit {code}, expected {expected}. stderr: {err}")
 
+    # The guarding hook compares the real path with the project's own out/ and
+    # dist/. Try the spellings and places that the old text match got wrong:
+    # upper case, a relative path, a linked folder, a dist/ folder inside the
+    # project, an out/ folder outside it and a project that lives under dist/.
+    guard = HOOKS / "protect-build-outputs.sh"
+    if guard.exists() and os.access(guard, os.X_OK):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            linked = tmp_path / "linked-project"
+            (linked / "out").mkdir(parents=True)
+            try:
+                os.symlink(linked / "out", linked / "shortcut")
+            except OSError:
+                linked = None   # no folder links here (Windows without the right): skip that case
+            outside = tmp_path / "elsewhere" / "out"
+            outside.mkdir(parents=True)
+            under_dist = tmp_path / "dist" / "clone"
+            (under_dist / "paper").mkdir(parents=True)
+            guard_cases: list[tuple[str, dict, dict, int]] = [
+                ("OUT/PAP_ML19.pdf in upper case", tool_call("Write", file_path=str(REPO / "OUT" / "PAP_ML19.pdf")), {}, 2),
+                ("relative path out/x.pdf", tool_call("Write", file_path="out/x.pdf"), {}, 2),
+                ("paper/dist/notes.md inside the project", tool_call("Write", file_path=str(REPO / "paper" / "dist" / "notes.md")), {}, 0),
+                ("a file in an out/ folder outside the project", tool_call("Write", file_path=str(outside / "x.md")), {}, 0),
+                ("a project that lives under a folder named dist",
+                 {**tool_call("Edit", file_path=str(under_dist / "paper" / "paper.md")), "cwd": str(under_dist)},
+                 {"CLAUDE_PROJECT_DIR": str(under_dist)}, 0),
+            ]
+            if linked is not None:
+                guard_cases.append((
+                    "a file reached through a linked folder",
+                    {**tool_call("Write", file_path=str(linked / "shortcut" / "x.pdf")), "cwd": str(linked)},
+                    {"CLAUDE_PROJECT_DIR": str(linked)}, 2))
+            for label, payload, env, expected in guard_cases:
+                code, err = run_hook(guard, payload, env=env)
+                if code == expected:
+                    ok(f"protect-build-outputs.sh {label} -> exit {code}")
+                else:
+                    fail(f"protect-build-outputs.sh {label} -> exit {code}, expected {expected}. stderr: {err}")
+
     # Fail closed: without jq the guarding hook must refuse even a harmless
     # write. Give it a PATH that holds only what it needs before the jq check.
-    guard = HOOKS / "protect-build-outputs.sh"
     if guard.exists():
         with tempfile.TemporaryDirectory() as tmp:
             for tool in ("bash", "cat"):
@@ -202,10 +257,20 @@ def frontmatter(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def tool_names(value: object) -> set[str]:
-    """Tool names in a frontmatter field: 'Read, Grep', 'Read Grep' or a YAML list."""
+def tool_items(value: object) -> list[str]:
+    """Items of a frontmatter tool field as written, rules in brackets kept: 'Read, Grep', 'Read Grep' or a YAML list."""
     items = TOOL_SEPARATOR.split(value.strip()) if isinstance(value, str) else [str(v) for v in value or []]
-    return {item.split("(")[0].strip() for item in items if item.strip()}
+    return [item.strip() for item in items if item.strip()]
+
+
+def tool_names(value: object) -> set[str]:
+    """Tool names in a frontmatter field, without any rule in brackets."""
+    return {item.split("(")[0].strip() for item in tool_items(value)}
+
+
+def bare_tools(value: object) -> set[str]:
+    """Tools that a field names as a whole, with no rule in brackets, from the set that writes, runs or fetches."""
+    return {item for item in tool_items(value) if item in BROAD_TOOLS}
 
 
 def check_skills() -> None:
@@ -226,10 +291,21 @@ def check_skills() -> None:
         if name and name != skill.parent.name:
             fail(f"{rel}: name '{name}' differs from directory '{skill.parent.name}'")
             continue
+        if fm.get("allowed-tools"):
+            broad = bare_tools(fm.get("allowed-tools"))
+            if broad:
+                fail(f"{rel}: allowed-tools pre-approves {', '.join(sorted(broad))} for every use; "
+                     "name what the tool may do, such as WebFetch(domain:...) or Bash(uv run ...), "
+                     "or leave it out so the call asks")
+                continue
+            ok(f"{rel}: allowed-tools pre-approves no tool as a whole")
         if skill.parent.name.endswith("-review"):
             removed = tool_names(fm.get("disallowed-tools"))
-            if not WRITE_TOOLS <= removed:
-                fail(f"{rel}: disallowed-tools must name {', '.join(sorted(WRITE_TOOLS))} (commands write files too); the review reports, it does not repair")
+            needed = WRITE_TOOLS | {"Agent"}
+            if not needed <= removed:
+                fail(f"{rel}: disallowed-tools must name {', '.join(sorted(needed))} "
+                     "(commands write files too, and a subagent brings tools of its own); "
+                     "the review reports, it does not repair")
                 continue
             ok(f"{rel}: disallowed-tools removes {', '.join(sorted(removed))}")
         ok(f"{rel}")
@@ -283,7 +359,16 @@ def check_agents() -> None:
                 fail(f"{rel}: grants {', '.join(sorted(others))}, which are not reading tools, "
                      "but the reference part (R.5) shows it as a reviewer that cannot change a file")
                 continue
-            ok(f"{rel}: read-only tools ({', '.join(sorted(granted))}), no memory field, no Agent tool")
+            # A page it fetches is outside text and could tell it to send a file out.
+            web, file_readers = granted & WEB_TOOLS, granted & FILE_READ_TOOLS
+            if web and file_readers:
+                fail(f"{rel}: holds {', '.join(sorted(web))} beside {', '.join(sorted(file_readers))}; "
+                     "a page it fetches could have it send a file out, so a reviewer that fetches pages "
+                     "is handed the text and holds no file tool")
+                continue
+            held = ", ".join(sorted(granted))
+            ok(f"{rel}: holds {held}" + ("; no file tool beside the web tool" if web else "")
+               + "; no memory field; no Agent tool")
         ok(f"{rel}")
     if not (AGENTS / f"{READ_ONLY_REVIEWER}.md").exists():
         fail(f".claude/agents/{READ_ONLY_REVIEWER}.md missing; the reference part (R.5) quotes it")
@@ -445,7 +530,7 @@ def check_slides() -> None:
             fail("tools/template.typ: `ai-label` no longer has the form this check reads")
             return
         from PIL import Image
-        with Image.open(REPO / str(label)) as im:
+        with Image.open(build_slides.inside_repo(label, "brand ai_label"), formats=build_slides.IMAGE_FORMATS) as im:
             left, top, right, _ = im.getchannel("A").getbbox()
             actual = (right - left, left, top, *im.size)
         expected = tuple(int(v) for v in m.group(1, 2, 3, 5, 6))

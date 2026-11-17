@@ -41,6 +41,7 @@ from PIL import Image, ImageChops, ImageDraw
 REPO = Path(__file__).resolve().parent.parent
 STUDIES = REPO / "slides" / "studies"
 BEATS = REPO / "slides" / "beats"
+DRAWING_FORMATS = ("PNG", "JPEG")   # what the drawings are; Pillow would otherwise read any format
 
 # Everything below is in pixels of the 2752 x 1536 drawings.
 
@@ -228,8 +229,8 @@ def palette_for(img: Image.Image) -> Image.Image:
 
 def make(name: str, ms: int) -> None:
     scene = SCENES[name]
-    plate = Image.open(STUDIES / scene.plate).convert("RGB")
-    sprite = Image.open(STUDIES / scene.sprite).convert("RGBA")
+    plate = Image.open(STUDIES / scene.plate, formats=DRAWING_FORMATS).convert("RGB")
+    sprite = Image.open(STUDIES / scene.sprite, formats=DRAWING_FORMATS).convert("RGBA")
     cover = None
     if scene.occluder:
         cover = Image.new("L", plate.size, 0)

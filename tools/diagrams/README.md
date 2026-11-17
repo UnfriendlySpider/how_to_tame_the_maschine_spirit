@@ -13,13 +13,15 @@ be changed by hand there and exported at scale 3 with padding 10.
 | `tool_call.py` | chapter 4, 1480 by 560 units, printed at the full text width (`height: 63mm` in the figure fence) |
 | `trifecta.py` | chapter 9, 1640 by 400 units, at the template's 40 mm |
 | `cast/` | the talk's cast in the diagrams' look: worker, reviewer, security, letter, programmer |
-| `cut_cast.py` | cuts `cast/` out of the character sheet (`slides/image-prompts.md`, image 46) |
+| `cut_cast.py` | cuts `cast/` out of the character sheet (`slides/image-prompts.md`, image 46); needs numpy: `uv run --group diagrams python tools/diagrams/cut_cast.py SHEET` |
 | `export.mjs` | renders a script's elements with Excalidraw's own export library in Chromium |
-| `fetch-lib.sh` | fetches that library and Excalidraw's two fonts into `lib/` (git-ignored), checksums pinned |
+| `fetch-lib.sh` | fetches that library and Excalidraw's two fonts into `lib/` (git-ignored): each download is checked against `lib.sha256` under a temporary name and moved into place only when it matches, and a file already there that matches is left alone |
+| `lib.sha256` | the pinned checksum of each file in `lib/`, in the form `sha256sum` writes; `fetch-lib.sh` and `export.mjs` both check against it, the export before it loads anything |
 
 ## Rebuild a diagram
 
-The scripts need Python's standard library only; the export needs Node 18 or
+The scripts that write a diagram need Python's standard library only
+(`cut_cast.py` is the exception, see its row); the export needs Node 18 or
 later and Playwright with Chromium, as a Claude Code cloud session has them.
 They sit outside `uv` on purpose: the paper's build never runs them, it reads
 the PNGs.

@@ -83,7 +83,7 @@ def main() -> None:
     args = parser.parse_args()
 
     tag = args.tag
-    if not TAG.match(tag):
+    if not TAG.fullmatch(tag):
         sys.exit(f"error: '{tag}' is not a tag like v1.0 or v1.1-conference")
     if args.target != "HEAD" and args.use is None:
         sys.exit("error: --target needs --use; a build always comes from the working tree at HEAD")
@@ -106,6 +106,9 @@ def main() -> None:
     number = str(meta.get("paper_number", "") or "").strip()
     if not number:
         sys.exit("error: paper/metadata.yaml has no paper_number")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", number):
+        sys.exit(f"error: paper/metadata.yaml: paper_number {number!r} is not a file-name part "
+                 "(letters, digits, - and _)")
     names = [f"PAP_{number}.pdf", f"PRE_{number}.pptx"]
     if args.full:
         names.append(f"PRE_{number}-full.pptx")

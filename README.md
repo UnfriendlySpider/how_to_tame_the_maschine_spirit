@@ -50,6 +50,18 @@ check a claim against the documentation, add a source or review a chapter's
 style, and a read-only subagent that audits the reference list. Install
 [uv](https://docs.astral.sh/uv/) and `jq` to use them.
 
+The skill `run-how-to-tame-the-maschine-spirit` lets Claude look at what it
+builds. Its driver builds the paper and the deck and renders every page and
+every slide to a picture in `out/shots/`, so a change is seen, not guessed.
+Claude loads the skill unasked when a request fits its description, such as
+"build the slides and show me 9.1". Rendering the slides also needs
+LibreOffice and poppler.
+
+```sh
+uv run python .claude/skills/run-how-to-tame-the-maschine-spirit/driver.py all                    # check, then every page and slide as a picture
+uv run python .claude/skills/run-how-to-tame-the-maschine-spirit/driver.py slides --ids 9.1,R.4   # only these slides
+```
+
 Hooks are shell scripts that run on your machine. Read `.claude/settings.json`
 and `.claude/hooks/` first, as you should for any repository you did not write.
 
